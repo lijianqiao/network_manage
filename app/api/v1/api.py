@@ -9,6 +9,5 @@
 
 from fastapi import APIRouter
 
-
 # 创建API路由器
 api_router = APIRouter()

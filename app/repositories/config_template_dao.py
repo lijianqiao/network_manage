@@ -6,8 +6,6 @@
 @Docs: 配置模板数据访问层实现
 """
 
-from typing import Optional
-
 from app.models.network_models import ConfigTemplate
 from app.repositories.base_dao import BaseDAO
 
@@ -22,7 +20,7 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         """初始化配置模板DAO"""
         super().__init__(ConfigTemplate)
 
-    async def get_by_name(self, name: str) -> Optional[ConfigTemplate]:
+    async def get_by_name(self, name: str) -> ConfigTemplate | None:
         """根据模板名称获取配置模板
 
         Args:
@@ -42,10 +40,7 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         Returns:
             配置模板列表
         """
-        return await self.list_by_filters(
-            {"template_type": template_type},
-            order_by=["name"]
-        )
+        return await self.list_by_filters({"template_type": template_type}, order_by=["name"])
 
     async def search_by_name(self, name_keyword: str) -> list[ConfigTemplate]:
         """根据名称关键字搜索配置模板
@@ -56,16 +51,9 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         Returns:
             匹配的配置模板列表
         """
-        return await self.list_by_filters(
-            {"name": name_keyword},
-            order_by=["name"]
-        )
+        return await self.list_by_filters({"name": name_keyword}, order_by=["name"])
 
-    async def check_name_exists(
-        self, 
-        name: str, 
-        exclude_id: Optional[int] = None
-    ) -> bool:
+    async def check_name_exists(self, name: str, exclude_id: int | None = None) -> bool:
         """检查模板名称是否已存在
 
         Args:
@@ -87,10 +75,7 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         Returns:
             活跃的配置模板列表
         """
-        return await self.list_by_filters(
-            {"is_active": True},
-            order_by=["template_type", "name"]
-        )
+        return await self.list_by_filters({"is_active": True}, order_by=["template_type", "name"])
 
     async def get_templates_with_usage_count(self) -> list[dict]:
         """获取配置模板及其使用次数
@@ -103,10 +88,7 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         return await (
             self.model.all()
             .annotate(usage_count=Count("operation_logs"))
-            .values(
-                "id", "name", "template_type", "description",
-                "is_active", "usage_count"
-            )
+            .values("id", "name", "template_type", "description", "is_active", "usage_count")
         )
 
     async def get_type_statistics(self) -> dict[str, int]:
@@ -121,9 +103,9 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         self,
         page: int = 1,
         page_size: int = 20,
-        template_type: Optional[str] = None,
-        is_active: Optional[bool] = None,
-        name_keyword: Optional[str] = None
+        template_type: str | None = None,
+        is_active: bool | None = None,
+        name_keyword: str | None = None,
     ) -> dict:
         """分页获取配置模板（性能优化版本）
 
@@ -145,12 +127,7 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         if name_keyword:
             filters["name"] = name_keyword
 
-        return await self.paginate(
-            page=page,
-            page_size=page_size,
-            filters=filters,
-            order_by=["template_type", "name"]
-        )
+        return await self.paginate(page=page, page_size=page_size, filters=filters, order_by=["template_type", "name"])
 
     async def bulk_create_templates(self, templates_data: list[dict]) -> list[ConfigTemplate]:
         """批量创建配置模板
@@ -173,10 +150,7 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         Returns:
             更新的模板数量
         """
-        return await self.update_by_filters(
-            {"id__in": template_ids}, 
-            is_active=is_active
-        )
+        return await self.update_by_filters({"id__in": template_ids}, is_active=is_active)
 
     async def get_templates_statistics(self) -> dict:
         """获取模板统计信息
@@ -187,13 +161,13 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         # 总数统计
         total_count = await self.count()
         active_count = await self.count(is_active=True)
-        
+
         # 按类型统计
         type_stats = await self.get_count_by_status("template_type")
-        
+
         return {
             "total_templates": total_count,
             "active_templates": active_count,
             "inactive_templates": total_count - active_count,
-            "by_type": type_stats
+            "by_type": type_stats,
         }

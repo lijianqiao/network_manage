@@ -7,7 +7,6 @@
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
 
 from app.models.network_models import OperationLog
 from app.repositories.base_dao import BaseDAO
@@ -33,9 +32,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             操作日志列表
         """
         return await self.list_by_filters(
-            {"device_id": device_id},
-            prefetch_related=["device"],
-            order_by=["-timestamp"]
+            {"device_id": device_id}, prefetch_related=["device"], order_by=["-timestamp"]
         )
 
     async def get_by_status(self, status: str) -> list[OperationLog]:
@@ -47,11 +44,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
         Returns:
             操作日志列表
         """
-        return await self.list_by_filters(
-            {"status": status},
-            prefetch_related=["device"],
-            order_by=["-timestamp"]
-        )
+        return await self.list_by_filters({"status": status}, prefetch_related=["device"], order_by=["-timestamp"])
 
     async def get_by_executed_by(self, executed_by: str) -> list[OperationLog]:
         """根据执行者获取操作日志列表
@@ -63,9 +56,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             操作日志列表
         """
         return await self.list_by_filters(
-            {"executed_by": executed_by},
-            prefetch_related=["device"],
-            order_by=["-timestamp"]
+            {"executed_by": executed_by}, prefetch_related=["device"], order_by=["-timestamp"]
         )
 
     async def get_recent_logs(self, limit: int = 100) -> list[OperationLog]:
@@ -78,12 +69,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             最近的操作日志列表
         """
         queryset = self.get_queryset()
-        return await (
-            queryset
-            .prefetch_related("device")
-            .order_by("-timestamp")
-            .limit(limit)
-        )
+        return await queryset.prefetch_related("device").order_by("-timestamp").limit(limit)
 
     async def get_failed_operations(self) -> list[OperationLog]:
         """获取失败的操作日志
@@ -91,11 +77,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
         Returns:
             失败的操作日志列表
         """
-        return await self.list_by_filters(
-            {"status": "failure"},
-            prefetch_related=["device"],
-            order_by=["-timestamp"]
-        )
+        return await self.list_by_filters({"status": "failure"}, prefetch_related=["device"], order_by=["-timestamp"])
 
     async def search_by_command_executed(self, keyword: str) -> list[OperationLog]:
         """根据执行命令关键字搜索操作日志
@@ -109,7 +91,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
         return await self.list_by_filters(
             {"command_executed": keyword},  # 会被_apply_filters转换为模糊查询
             prefetch_related=["device"],
-            order_by=["-timestamp"]
+            order_by=["-timestamp"],
         )
 
     async def log_operation(
@@ -117,11 +99,11 @@ class OperationLogDAO(BaseDAO[OperationLog]):
         device_id: int,
         executed_by: str,
         command_executed: str,
-        output_received: Optional[str] = None,
+        output_received: str | None = None,
         status: str = "success",
-        error_message: Optional[str] = None,
-        template_id: Optional[int] = None,
-        parsed_output: Optional[dict] = None
+        error_message: str | None = None,
+        template_id: int | None = None,
+        parsed_output: dict | None = None,
     ) -> OperationLog:
         """记录操作日志
 
@@ -147,18 +129,18 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             error_message=error_message,
             template_id=template_id,
             parsed_output=parsed_output,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
     async def paginate_logs(
         self,
         page: int = 1,
         page_size: int = 50,
-        device_id: Optional[int] = None,
-        status: Optional[str] = None,
-        executed_by: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        device_id: int | None = None,
+        status: str | None = None,
+        executed_by: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> dict:
         """分页获取操作日志（性能优化版本）
 
@@ -191,7 +173,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             page_size=page_size,
             filters=filters,
             prefetch_related=["device", "template"],
-            order_by=["-timestamp"]  # 最新的在前面
+            order_by=["-timestamp"],  # 最新的在前面
         )
 
     async def get_logs_statistics(self) -> dict:
@@ -205,14 +187,14 @@ class OperationLogDAO(BaseDAO[OperationLog]):
         # 今日日志统计
         today = datetime.now().date()
         today_logs = await self.count(timestamp__gte=today)
-        
+
         # 近7天日志统计
         week_ago = today - timedelta(days=7)
         week_logs = await self.count(timestamp__gte=week_ago)
-        
+
         # 按状态统计
         status_stats = await self.get_count_by_status("status")
-        
+
         # 按设备统计Top10
         device_stats = await (
             self.model.all()
@@ -228,7 +210,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             "today_logs": today_logs,
             "week_logs": week_logs,
             "by_status": status_stats,
-            "top_devices": device_stats
+            "top_devices": device_stats,
         }
 
     async def bulk_update_logs(self, updates: list[dict]) -> int:
@@ -252,17 +234,10 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             最近的失败日志列表
         """
         return await self.list_by_filters(
-            filters={"status": "failure"},
-            prefetch_related=["device"],
-            order_by=["-timestamp"]
+            filters={"status": "failure"}, prefetch_related=["device"], order_by=["-timestamp"]
         )
 
-    async def search_logs_by_command(
-        self, 
-        keyword: str, 
-        page: int = 1, 
-        page_size: int = 20
-    ) -> dict:
+    async def search_logs_by_command(self, keyword: str, page: int = 1, page_size: int = 20) -> dict:
         """根据命令内容搜索日志（分页）
 
         Args:
@@ -274,11 +249,7 @@ class OperationLogDAO(BaseDAO[OperationLog]):
             分页搜索结果
         """
         filters = {"command_executed": keyword}
-        
+
         return await self.paginate(
-            page=page,
-            page_size=page_size,
-            filters=filters,
-            prefetch_related=["device"],
-            order_by=["-timestamp"]
+            page=page, page_size=page_size, filters=filters, prefetch_related=["device"], order_by=["-timestamp"]
         )

@@ -6,8 +6,8 @@
 @Docs: 品牌数据访问层实现
 """
 
-from typing import Optional
 from tortoise.functions import Count
+
 from app.models.network_models import Brand
 from app.repositories.base_dao import BaseDAO
 
@@ -22,7 +22,7 @@ class BrandDAO(BaseDAO[Brand]):
         """初始化品牌DAO"""
         super().__init__(Brand)
 
-    async def get_by_name(self, name: str) -> Optional[Brand]:
+    async def get_by_name(self, name: str) -> Brand | None:
         """根据品牌名称获取品牌
 
         Args:
@@ -32,8 +32,8 @@ class BrandDAO(BaseDAO[Brand]):
             品牌实例或None
         """
         return await self.get_by_field("name", name)
-        
-    async def get_by_platform_type(self, platform_type: str) -> Optional[Brand]:
+
+    async def get_by_platform_type(self, platform_type: str) -> Brand | None:
         """根据平台类型获取品牌
 
         Args:
@@ -53,12 +53,9 @@ class BrandDAO(BaseDAO[Brand]):
         Returns:
             匹配的品牌列表
         """
-        return await self.list_by_filters(
-            {"name": name_keyword},
-            order_by=["name"]
-        )
+        return await self.list_by_filters({"name": name_keyword}, order_by=["name"])
 
-    async def check_name_exists(self, name: str, exclude_id: Optional[int] = None) -> bool:
+    async def check_name_exists(self, name: str, exclude_id: int | None = None) -> bool:
         """检查品牌名称是否已存在
 
         Args:
@@ -74,7 +71,7 @@ class BrandDAO(BaseDAO[Brand]):
             return await queryset.exists()
         return await self.exists(**filters)
 
-    async def check_platform_type_exists(self, platform_type: str, exclude_id: Optional[int] = None) -> bool:
+    async def check_platform_type_exists(self, platform_type: str, exclude_id: int | None = None) -> bool:
         """检查平台类型是否已存在
 
         Args:
@@ -96,7 +93,6 @@ class BrandDAO(BaseDAO[Brand]):
         Returns:
             包含品牌信息和型号数量的字典列表
         """
-
 
         return await (
             self.model.all()
@@ -127,29 +123,17 @@ class BrandDAO(BaseDAO[Brand]):
         """获取品牌及其统计信息（优化版本）
 
         Returns:
-            包含统计信息的品牌列表       
+            包含统计信息的品牌列表
         """
-
 
         return await (
             self.model.all()
-            .annotate(
-                model_count=Count("device_models"),
-                device_count=Count("device_models__devices")
-            )
+            .annotate(model_count=Count("device_models"), device_count=Count("device_models__devices"))
             .order_by("name")
-            .values(
-                "id", "name", "platform_type", "description",
-                "model_count", "device_count"
-            )
+            .values("id", "name", "platform_type", "description", "model_count", "device_count")
         )
 
-    async def search_brands_optimized(
-        self, 
-        keyword: str, 
-        page: int = 1, 
-        page_size: int = 20
-    ) -> dict:
+    async def search_brands_optimized(self, keyword: str, page: int = 1, page_size: int = 20) -> dict:
         """优化的品牌搜索（支持分页）
 
         Args:
@@ -161,10 +145,5 @@ class BrandDAO(BaseDAO[Brand]):
             分页搜索结果
         """
         filters = {"name": keyword}
-        
-        return await self.paginate(
-            page=page,
-            page_size=page_size,
-            filters=filters,
-            order_by=["name"]
-        )
+
+        return await self.paginate(page=page, page_size=page_size, filters=filters, order_by=["name"])

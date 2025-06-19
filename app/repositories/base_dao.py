@@ -6,13 +6,15 @@
 @Docs: 数据访问层基类，提供通用的CRUD操作
 """
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 from tortoise.exceptions import DoesNotExist, IntegrityError
 from tortoise.models import Model
 from tortoise.queryset import QuerySet
 from tortoise.transactions import in_transaction
+
 from app.utils.logger import logger
 
 ModelType = TypeVar("ModelType", bound=Model)
@@ -20,6 +22,7 @@ ModelType = TypeVar("ModelType", bound=Model)
 
 def with_transaction(func: Callable) -> Callable:
     """事务装饰器"""
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
@@ -28,6 +31,7 @@ def with_transaction(func: Callable) -> Callable:
         except Exception as e:
             logger.error(f"{func.__name__} 中的事务失败： {e}")
             raise
+
     return wrapper
 
 
@@ -69,10 +73,7 @@ class BaseDAO[ModelType: Model]:
 
     @with_transaction
     async def bulk_create(
-        self, 
-        objects: list[dict[str, Any]], 
-        batch_size: int = 1000,
-        ignore_conflicts: bool = False
+        self, objects: list[dict[str, Any]], batch_size: int = 1000, ignore_conflicts: bool = False
     ) -> list[ModelType]:
         """批量创建记录
 
@@ -94,12 +95,12 @@ class BaseDAO[ModelType: Model]:
             # 分批处理大量数据
             all_instances = []
             for i in range(0, len(objects), batch_size):
-                batch = objects[i:i + batch_size]
+                batch = objects[i : i + batch_size]
                 instances = [self.model(**obj) for obj in batch]
-                
+
                 # 执行批量创建
                 await self.model.bulk_create(instances, ignore_conflicts=ignore_conflicts)
-                
+
                 # 如果需要返回带ID的实例，重新查询
                 if not ignore_conflicts:
                     # 获取刚创建的实例（通过某个唯一字段查询）
@@ -107,10 +108,10 @@ class BaseDAO[ModelType: Model]:
                     all_instances.extend(instances)
                 else:
                     all_instances.extend(instances)
-            
+
             logger.info(f"Bulk created {len(all_instances)} {self.model.__name__} records")
             return all_instances
-            
+
         except IntegrityError as e:
             logger.error(f"Failed to bulk create {self.model.__name__}: {e}")
             raise
@@ -118,7 +119,7 @@ class BaseDAO[ModelType: Model]:
             logger.error(f"Unexpected error in bulk create {self.model.__name__}: {e}")
             raise
 
-    async def get_by_id(self, id: int) -> Optional[ModelType]:
+    async def get_by_id(self, id: int) -> ModelType | None:
         """根据ID获取记录
 
         Args:
@@ -307,7 +308,7 @@ class BaseDAO[ModelType: Model]:
             },
         }
 
-    async def update_by_id(self, id: int, **kwargs) -> Optional[ModelType]:
+    async def update_by_id(self, id: int, **kwargs) -> ModelType | None:
         """根据ID更新记录
 
         Args:
@@ -335,11 +336,7 @@ class BaseDAO[ModelType: Model]:
             raise
 
     @with_transaction
-    async def bulk_update(
-        self, 
-        updates: list[dict[str, Any]], 
-        key_field: str = "id"
-    ) -> int:
+    async def bulk_update(self, updates: list[dict[str, Any]], key_field: str = "id") -> int:
         """批量更新记录
 
         Args:
@@ -360,14 +357,14 @@ class BaseDAO[ModelType: Model]:
             for update_data in updates:
                 if key_field not in update_data:
                     continue
-                
+
                 key_value = update_data.pop(key_field)
                 updated_count = await self.model.filter(**{key_field: key_value}).update(**update_data)
                 total_updated += updated_count
-            
+
             logger.info(f"Bulk updated {total_updated} {self.model.__name__} records")
             return total_updated
-            
+
         except IntegrityError as e:
             logger.error(f"Failed to bulk update {self.model.__name__}: {e}")
             raise
@@ -412,10 +409,10 @@ class BaseDAO[ModelType: Model]:
             是否删除成功
         """
         # 检查模型是否有is_deleted字段
-        if not hasattr(self.model, 'is_deleted'):
+        if not hasattr(self.model, "is_deleted"):
             logger.warning(f"{self.model.__name__} does not support soft delete (no is_deleted field)")
             return False
-            
+
         try:
             updated_count = await self.model.filter(id=id).update(is_deleted=True)
             success = updated_count > 0
@@ -447,10 +444,10 @@ class BaseDAO[ModelType: Model]:
             删除的记录数量
         """
         # 检查模型是否有is_deleted字段
-        if not hasattr(self.model, 'is_deleted'):
+        if not hasattr(self.model, "is_deleted"):
             logger.warning(f"{self.model.__name__} does not support soft delete (no is_deleted field)")
             return 0
-            
+
         try:
             updated_count = await self.model.filter(**filters).update(is_deleted=True)
             if updated_count > 0:
@@ -503,11 +500,11 @@ class BaseDAO[ModelType: Model]:
             模型实例列表
         """
         base_filters = {}
-        
+
         # 检查并添加is_deleted过滤条件
         if hasattr(self.model, "is_deleted"):
             base_filters["is_deleted"] = False
-            
+
         # 检查并添加is_active过滤条件
         if hasattr(self.model, "is_active"):
             base_filters["is_active"] = True
@@ -527,7 +524,9 @@ class BaseDAO[ModelType: Model]:
         try:
             from tortoise.functions import Count
 
-            result = await self.model.all().group_by(status_field).annotate(count=Count("id")).values(status_field, "count")
+            result = (
+                await self.model.all().group_by(status_field).annotate(count=Count("id")).values(status_field, "count")
+            )
             return {item[status_field]: item["count"] for item in result}
         except Exception as e:
             logger.error(f"Error getting count by status for {self.model.__name__}: {e}")
@@ -552,7 +551,7 @@ class BaseDAO[ModelType: Model]:
         """
         return self.model.filter(**filters)
 
-    async def upsert(self, defaults: Optional[dict[str, Any]] = None, **kwargs: Any) -> tuple[ModelType, bool]:
+    async def upsert(self, defaults: dict[str, Any] | None = None, **kwargs: Any) -> tuple[ModelType, bool]:
         """更新或创建记录的别名方法
 
         Args:
@@ -574,10 +573,10 @@ class BaseDAO[ModelType: Model]:
             活跃记录数量
         """
         base_filters = {}
-        
+
         if hasattr(self.model, "is_deleted"):
             base_filters["is_deleted"] = False
-            
+
         if hasattr(self.model, "is_active"):
             base_filters["is_active"] = True
 
@@ -594,10 +593,10 @@ class BaseDAO[ModelType: Model]:
             是否存在活跃记录
         """
         base_filters = {}
-        
+
         if hasattr(self.model, "is_deleted"):
             base_filters["is_deleted"] = False
-            
+
         if hasattr(self.model, "is_active"):
             base_filters["is_active"] = True
 

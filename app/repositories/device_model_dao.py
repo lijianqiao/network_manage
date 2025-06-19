@@ -6,8 +6,6 @@
 @Docs: 设备型号数据访问层实现
 """
 
-from typing import Optional
-
 from app.models.network_models import DeviceModel
 from app.repositories.base_dao import BaseDAO
 
@@ -22,7 +20,7 @@ class DeviceModelDAO(BaseDAO[DeviceModel]):
         """初始化设备型号DAO"""
         super().__init__(DeviceModel)
 
-    async def get_by_name(self, name: str) -> Optional[DeviceModel]:
+    async def get_by_name(self, name: str) -> DeviceModel | None:
         """根据型号名称获取设备型号
 
         Args:
@@ -42,10 +40,7 @@ class DeviceModelDAO(BaseDAO[DeviceModel]):
         Returns:
             设备型号列表
         """
-        return await self.list_by_filters(
-            {"brand_id": brand_id},
-            prefetch_related=["brand"],
-            order_by=["name"]        )
+        return await self.list_by_filters({"brand_id": brand_id}, prefetch_related=["brand"], order_by=["name"])
 
     async def search_by_name(self, name_keyword: str) -> list[DeviceModel]:
         """根据名称关键字搜索设备型号
@@ -57,17 +52,10 @@ class DeviceModelDAO(BaseDAO[DeviceModel]):
             匹配的设备型号列表
         """
         return await self.list_by_filters(
-            {"name": name_keyword},
-            prefetch_related=["brand"],
-            order_by=["brand__name", "name"]
+            {"name": name_keyword}, prefetch_related=["brand"], order_by=["brand__name", "name"]
         )
 
-    async def check_name_exists_in_brand(
-        self, 
-        name: str, 
-        brand_id: int, 
-        exclude_id: Optional[int] = None
-    ) -> bool:
+    async def check_name_exists_in_brand(self, name: str, brand_id: int, exclude_id: int | None = None) -> bool:
         """检查品牌下是否已存在同名型号
 
         Args:
@@ -96,8 +84,5 @@ class DeviceModelDAO(BaseDAO[DeviceModel]):
             self.model.all()
             .select_related("brand")
             .annotate(device_count=Count("devices"))
-            .values(
-                "id", "name", "description",
-                "brand__name", "device_count"
-            )
+            .values("id", "name", "description", "brand__name", "device_count")
         )

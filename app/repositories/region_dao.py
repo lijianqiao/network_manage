@@ -6,8 +6,6 @@
 @Docs: 区域数据访问层实现
 """
 
-from typing import Optional
-
 from app.models.network_models import Region
 from app.repositories.base_dao import BaseDAO
 
@@ -22,7 +20,7 @@ class RegionDAO(BaseDAO[Region]):
         """初始化区域DAO"""
         super().__init__(Region)
 
-    async def get_by_name(self, name: str) -> Optional[Region]:
+    async def get_by_name(self, name: str) -> Region | None:
         """根据区域名称获取区域
 
         Args:
@@ -44,10 +42,10 @@ class RegionDAO(BaseDAO[Region]):
         """
         return await self.list_by_filters(
             {"name": name_keyword},  # 会自动转换为模糊查询
-            order_by=["name"]
+            order_by=["name"],
         )
 
-    async def check_name_exists(self, name: str, exclude_id: Optional[int] = None) -> bool:
+    async def check_name_exists(self, name: str, exclude_id: int | None = None) -> bool:
         """检查区域名称是否已存在
 
         Args:
@@ -73,17 +71,10 @@ class RegionDAO(BaseDAO[Region]):
         from tortoise.functions import Count
 
         return await (
-            self.model.all()
-            .annotate(device_count=Count("devices"))
-            .values("id", "name", "description", "device_count")
+            self.model.all().annotate(device_count=Count("devices")).values("id", "name", "description", "device_count")
         )
 
-    async def paginate_regions(
-        self,
-        page: int = 1,
-        page_size: int = 20,
-        name_keyword: Optional[str] = None
-    ) -> dict:
+    async def paginate_regions(self, page: int = 1, page_size: int = 20, name_keyword: str | None = None) -> dict:
         """分页获取区域列表（性能优化版本）
 
         Args:
@@ -98,12 +89,7 @@ class RegionDAO(BaseDAO[Region]):
         if name_keyword:
             filters["name"] = name_keyword
 
-        return await self.paginate(
-            page=page,
-            page_size=page_size,
-            filters=filters,
-            order_by=["name"]
-        )
+        return await self.paginate(page=page, page_size=page_size, filters=filters, order_by=["name"])
 
     async def bulk_create_regions(self, regions_data: list[dict]) -> list[Region]:
         """批量创建区域
@@ -126,15 +112,16 @@ class RegionDAO(BaseDAO[Region]):
 
         return await (
             self.model.all()
-            .annotate(
-                device_count=Count("devices"),
-                device_group_count=Count("device_groups")
-            )
+            .annotate(device_count=Count("devices"), device_group_count=Count("device_groups"))
             .order_by("name")
             .values(
-                "id", "name", "snmp_community_string", 
-                "default_cli_username", "description",
-                "device_count", "device_group_count"
+                "id",
+                "name",
+                "snmp_community_string",
+                "default_cli_username",
+                "description",
+                "device_count",
+                "device_group_count",
             )
         )
 
@@ -145,19 +132,16 @@ class RegionDAO(BaseDAO[Region]):
             区域统计信息
         """
         total_regions = await self.count()
-        
+
         # 统计设备总数
         from tortoise.functions import Count
-        device_stats = await (
-            self.model.all()
-            .annotate(total_devices=Count("devices"))
-            .values("total_devices")
-        )
-        
+
+        device_stats = await self.model.all().annotate(total_devices=Count("devices")).values("total_devices")
+
         total_devices = sum(item["total_devices"] for item in device_stats)
-        
+
         return {
             "total_regions": total_regions,
             "total_devices": total_devices,
-            "avg_devices_per_region": round(total_devices / total_regions, 2) if total_regions > 0 else 0
+            "avg_devices_per_region": round(total_devices / total_regions, 2) if total_regions > 0 else 0,
         }

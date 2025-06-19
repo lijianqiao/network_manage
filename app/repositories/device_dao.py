@@ -6,8 +6,6 @@
 @Docs: 设备数据访问层实现
 """
 
-from typing import Optional
-
 from tortoise.expressions import Q
 
 from app.models.network_models import Device
@@ -24,7 +22,7 @@ class DeviceDAO(BaseDAO[Device]):
         """初始化设备DAO"""
         super().__init__(Device)
 
-    async def get_by_name(self, name: str) -> Optional[Device]:
+    async def get_by_name(self, name: str) -> Device | None:
         """根据设备名称获取设备
 
         Args:
@@ -35,7 +33,7 @@ class DeviceDAO(BaseDAO[Device]):
         """
         return await self.get_by_field("name", name)
 
-    async def get_by_ip(self, ip_address: str) -> Optional[Device]:
+    async def get_by_ip(self, ip_address: str) -> Device | None:
         """根据IP地址获取设备
 
         Args:
@@ -54,11 +52,9 @@ class DeviceDAO(BaseDAO[Device]):
 
         Returns:
             设备列表
-        """        
+        """
         return await self.list_by_filters(
-            {"region_id": region_id},
-            prefetch_related=["region", "device_group", "model"],
-            order_by=["name"]
+            {"region_id": region_id}, prefetch_related=["region", "device_group", "model"], order_by=["name"]
         )
 
     async def get_by_group(self, group_id: int) -> list[Device]:
@@ -69,11 +65,9 @@ class DeviceDAO(BaseDAO[Device]):
 
         Returns:
             设备列表
-        """        
+        """
         return await self.list_by_filters(
-            {"device_group_id": group_id},
-            prefetch_related=["region", "device_group", "model"],
-            order_by=["name"]
+            {"device_group_id": group_id}, prefetch_related=["region", "device_group", "model"], order_by=["name"]
         )
 
     async def get_by_model(self, model_id: int) -> list[Device]:
@@ -84,11 +78,9 @@ class DeviceDAO(BaseDAO[Device]):
 
         Returns:
             设备列表
-        """        
+        """
         return await self.list_by_filters(
-            {"model_id": model_id},
-            prefetch_related=["region", "device_group", "model"],
-            order_by=["name"]
+            {"model_id": model_id}, prefetch_related=["region", "device_group", "model"], order_by=["name"]
         )
 
     async def get_by_status(self, status: str) -> list[Device]:
@@ -99,11 +91,9 @@ class DeviceDAO(BaseDAO[Device]):
 
         Returns:
             设备列表
-        """        
+        """
         return await self.list_by_filters(
-            {"status": status},
-            prefetch_related=["region", "device_group", "model"],
-            order_by=["name"]
+            {"status": status}, prefetch_related=["region", "device_group", "model"], order_by=["name"]
         )
 
     async def search_by_name(self, name_keyword: str) -> list[Device]:
@@ -116,9 +106,7 @@ class DeviceDAO(BaseDAO[Device]):
             匹配的设备列表
         """
         return await self.list_by_filters(
-            {"name": name_keyword},
-            prefetch_related=["region", "device_group", "model"],
-            order_by=["name"]
+            {"name": name_keyword}, prefetch_related=["region", "device_group", "model"], order_by=["name"]
         )
 
     async def search_by_ip(self, ip_keyword: str) -> list[Device]:
@@ -134,7 +122,7 @@ class DeviceDAO(BaseDAO[Device]):
         queryset = self.filter(ip_address__icontains=ip_keyword)
         return await queryset.prefetch_related("region", "device_group", "model").order_by("ip_address")
 
-    async def check_name_exists(self, name: str, exclude_id: Optional[int] = None) -> bool:
+    async def check_name_exists(self, name: str, exclude_id: int | None = None) -> bool:
         """检查设备名称是否已存在
 
         Args:
@@ -150,7 +138,7 @@ class DeviceDAO(BaseDAO[Device]):
             return await queryset.exists()
         return await self.exists(**filters)
 
-    async def check_ip_exists(self, ip_address: str, exclude_id: Optional[int] = None) -> bool:
+    async def check_ip_exists(self, ip_address: str, exclude_id: int | None = None) -> bool:
         """检查IP地址是否已存在
 
         Args:
@@ -174,24 +162,22 @@ class DeviceDAO(BaseDAO[Device]):
         """
         total_count = await self.count()
         active_count = await self.count_active()
-        
+
         # 按状态统计
         status_counts = await self.get_count_by_status("status")
-        
+
         # 按区域统计
         from tortoise.functions import Count
+
         region_counts = await (
-            self.model.all()
-            .group_by("region_id")
-            .annotate(count=Count("id"))
-            .values("region__name", "count")
+            self.model.all().group_by("region_id").annotate(count=Count("id")).values("region__name", "count")
         )
-        
+
         return {
             "total": total_count,
             "active": active_count,
             "by_status": status_counts,
-            "by_region": {item["region__name"]: item["count"] for item in region_counts}
+            "by_region": {item["region__name"]: item["count"] for item in region_counts},
         }
 
     async def get_devices_with_connection_status(self) -> list[dict]:
@@ -205,9 +191,15 @@ class DeviceDAO(BaseDAO[Device]):
             .select_related("region", "device_group", "model")
             .prefetch_related("connection_statuses")
             .values(
-                "id", "name", "ip_address", "status",
-                "region__name", "device_group__name", "model__name",
-                "connection_statuses__snmp_status", "connection_statuses__cli_status"
+                "id",
+                "name",
+                "ip_address",
+                "status",
+                "region__name",
+                "device_group__name",
+                "model__name",
+                "connection_statuses__snmp_status",
+                "connection_statuses__cli_status",
             )
         )
 
@@ -231,10 +223,10 @@ class DeviceDAO(BaseDAO[Device]):
         self,
         page: int = 1,
         page_size: int = 20,
-        region_id: Optional[int] = None,
-        device_group_id: Optional[int] = None,
-        status: Optional[str] = None,
-        name_keyword: Optional[str] = None
+        region_id: int | None = None,
+        device_group_id: int | None = None,
+        status: str | None = None,
+        name_keyword: str | None = None,
     ) -> dict:
         """分页获取设备列表（性能优化版本）
 
@@ -264,7 +256,7 @@ class DeviceDAO(BaseDAO[Device]):
             page_size=page_size,
             filters=filters,
             prefetch_related=["region", "device_group", "model"],
-            order_by=["name"]
+            order_by=["name"],
         )
 
     async def bulk_update_status(self, device_ids: list[int], status: str) -> int:
@@ -277,17 +269,9 @@ class DeviceDAO(BaseDAO[Device]):
         Returns:
             更新的设备数量
         """
-        return await self.update_by_filters(
-            {"id__in": device_ids}, 
-            status=status
-        )
+        return await self.update_by_filters({"id__in": device_ids}, status=status)
 
-    async def get_devices_by_region_paginated(
-        self, 
-        region_id: int, 
-        page: int = 1, 
-        page_size: int = 20
-    ) -> dict:
+    async def get_devices_by_region_paginated(self, region_id: int, page: int = 1, page_size: int = 20) -> dict:
         """分页获取指定区域的设备（优化版本）
 
         Args:
@@ -303,7 +287,7 @@ class DeviceDAO(BaseDAO[Device]):
             page_size=page_size,
             filters={"region_id": region_id},
             prefetch_related=["region", "device_group", "model"],
-            order_by=["name"]
+            order_by=["name"],
         )
 
     async def get_devices_statistics(self) -> dict:
@@ -317,16 +301,13 @@ class DeviceDAO(BaseDAO[Device]):
         # 使用单个查询获取多种统计信息
         stats = await (
             self.model.all()
-            .annotate(
-                region_count=Count("region_id", distinct=True),
-                total_count=Count("id")
-            )
+            .annotate(region_count=Count("region_id", distinct=True), total_count=Count("id"))
             .values("region_count", "total_count")
         )
 
         # 按状态统计
         status_stats = await self.get_count_by_status("status")
-        
+
         # 按设备类型统计
         type_stats = await self.get_count_by_status("device_type")
 
@@ -334,15 +315,10 @@ class DeviceDAO(BaseDAO[Device]):
             "total_devices": stats[0]["total_count"] if stats else 0,
             "total_regions": stats[0]["region_count"] if stats else 0,
             "by_status": status_stats,
-            "by_type": type_stats
+            "by_type": type_stats,
         }
 
-    async def search_devices_optimized(
-        self, 
-        keyword: str, 
-        page: int = 1, 
-        page_size: int = 20
-    ) -> dict:
+    async def search_devices_optimized(self, keyword: str, page: int = 1, page_size: int = 20) -> dict:
         """优化的设备搜索（支持分页）
 
         Args:
@@ -355,27 +331,25 @@ class DeviceDAO(BaseDAO[Device]):
         """
         # 使用自定义查询优化搜索性能
         queryset = self.get_queryset()
-        
+
         # 多字段模糊搜索
         queryset = queryset.filter(
-            Q(name__icontains=keyword) | 
-            Q(ip_address__icontains=keyword) |
-            Q(serial_number__icontains=keyword)
+            Q(name__icontains=keyword) | Q(ip_address__icontains=keyword) | Q(serial_number__icontains=keyword)
         )
-        
+
         # 预加载关联数据
         queryset = queryset.prefetch_related("region", "device_group", "model")
-        
+
         # 计算总数
         total = await queryset.count()
-        
+
         # 分页
         offset = (page - 1) * page_size
         items = await queryset.offset(offset).limit(page_size).order_by("name")
-        
+
         # 计算分页信息
         total_pages = (total + page_size - 1) // page_size
-        
+
         return {
             "items": items,
             "pagination": {
@@ -385,5 +359,5 @@ class DeviceDAO(BaseDAO[Device]):
                 "total_pages": total_pages,
                 "has_next": page < total_pages,
                 "has_prev": page > 1,
-            }
+            },
         }
