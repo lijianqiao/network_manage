@@ -1,0 +1,16 @@
+# base
+fastapi[standard]
+uvicorn[standard]
+tortoise-orm
+pydantic
+pydantic-settings
+aerich
+
+# log
+loguru
+
+# database
+asyncpg
+
+# cache
+redis[hiredis]
