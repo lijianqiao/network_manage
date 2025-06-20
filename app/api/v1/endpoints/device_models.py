@@ -1,0 +1,224 @@
+"""
+@Author: li
+@Email: lijianqiao2906@live.com
+@FileName: device_models.py
+@DateTime: 2025/06/20 00:00:00
+@Docs: 设备型号管理API端点
+"""
+
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.core.dependencies import get_device_model_service
+from app.core.exceptions import (
+    BadRequestException,
+    NotFoundError,
+    ValidationError,
+)
+from app.schemas.device_model import (
+    DeviceModelCreateRequest,
+    DeviceModelListResponse,
+    DeviceModelPaginationResponse,
+    DeviceModelQueryParams,
+    DeviceModelUpdateRequest,
+)
+from app.services.device_model_service import DeviceModelService
+
+router = APIRouter(prefix="/device-models", tags=["设备型号管理"])
+
+
+@router.post(
+    "/",
+    response_model=DeviceModelListResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="创建设备型号",
+)
+async def create_device_model(
+    device_model_data: DeviceModelCreateRequest,
+    service: DeviceModelService = Depends(get_device_model_service),
+) -> DeviceModelListResponse:
+    """创建设备型号"""
+    try:
+        device_model = await service.create(device_model_data)
+        return device_model
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"数据验证失败: {e.message}",
+        ) from e
+    except BadRequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"业务逻辑错误: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"创建设备型号失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/{device_model_id}",
+    response_model=DeviceModelListResponse,
+    summary="获取设备型号详情",
+)
+async def get_device_model(
+    device_model_id: UUID,
+    service: DeviceModelService = Depends(get_device_model_service),
+) -> DeviceModelListResponse:
+    """获取设备型号详情"""
+    try:
+        device_model = await service.get_by_id(device_model_id)
+        return device_model
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"设备型号不存在: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取设备型号失败: {str(e)}",
+        ) from e
+
+
+@router.put(
+    "/{device_model_id}",
+    response_model=DeviceModelListResponse,
+    summary="更新设备型号",
+)
+async def update_device_model(
+    device_model_id: UUID,
+    device_model_data: DeviceModelUpdateRequest,
+    service: DeviceModelService = Depends(get_device_model_service),
+) -> DeviceModelListResponse:
+    """更新设备型号"""
+    try:
+        device_model = await service.update(device_model_id, device_model_data)
+        return device_model
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"设备型号不存在: {e.message}",
+        ) from e
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"数据验证失败: {e.message}",
+        ) from e
+    except BadRequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"业务逻辑错误: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"更新设备型号失败: {str(e)}",
+        ) from e
+
+
+@router.delete(
+    "/{device_model_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除设备型号",
+)
+async def delete_device_model(
+    device_model_id: UUID,
+    service: DeviceModelService = Depends(get_device_model_service),
+) -> None:
+    """删除设备型号"""
+    try:
+        await service.delete(device_model_id)
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"设备型号不存在: {e.message}",
+        ) from e
+    except BadRequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"业务逻辑错误: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"删除设备型号失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/",
+    response_model=DeviceModelPaginationResponse,
+    summary="分页查询设备型号",
+)
+async def list_device_models(
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(10, ge=1, le=100, description="每页数量"),
+    name: str | None = Query(None, description="型号名称筛选"),
+    brand_id: UUID | None = Query(None, description="品牌ID筛选"),
+    service: DeviceModelService = Depends(get_device_model_service),
+) -> DeviceModelPaginationResponse:
+    """分页查询设备型号列表"""
+    try:
+        query_params = DeviceModelQueryParams(
+            page=page,
+            page_size=page_size,
+            name=name,
+            brand_id=brand_id,
+        )
+
+        result = await service.list_with_pagination(query_params)
+        return result
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"参数验证失败: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"查询设备型号失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/stats/count",
+    response_model=dict[str, int],
+    summary="统计设备型号数量",
+)
+async def get_device_models_count(
+    service: DeviceModelService = Depends(get_device_model_service),
+) -> dict[str, int]:
+    """获取设备型号统计数量"""
+    try:
+        total_count = await service.count()
+        return {"total": total_count}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"统计设备型号失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/brand/{brand_id}",
+    response_model=DeviceModelPaginationResponse,
+    summary="根据品牌获取设备型号",
+)
+async def get_device_models_by_brand(
+    brand_id: UUID,
+    service: DeviceModelService = Depends(get_device_model_service),
+) -> DeviceModelPaginationResponse:
+    """根据品牌ID获取设备型号列表"""
+    try:
+        query_params = DeviceModelQueryParams(page=1, page_size=1000, brand_id=brand_id)
+        result = await service.list_with_pagination(query_params)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"查询设备型号失败: {str(e)}",
+        ) from e
