@@ -18,6 +18,7 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from app.models.network_models import DeviceGroup
 from app.schemas.base import SuccessResponse
 from app.schemas.device_group import (
     DeviceGroupCreateRequest,
@@ -27,8 +28,8 @@ from app.schemas.device_group import (
     DeviceGroupUpdateRequest,
 )
 from app.services.device_group_service import DeviceGroupService
-from app.utils.device_group_import_export import DeviceGroupImportExport
 from app.utils.logger import logger
+from app.utils.universal_import_export import get_import_export_tool
 
 router = APIRouter(prefix="/device-groups", tags=["设备组管理"])
 
@@ -218,8 +219,8 @@ async def get_device_groups_count(
 async def download_device_group_template():
     """下载设备分组导入模板"""
     try:
-        device_group_import_export = DeviceGroupImportExport()
-        excel_data = await device_group_import_export.export_template()
+        tool = await get_import_export_tool(DeviceGroup)
+        excel_data = await tool.export_template()
 
         return StreamingResponse(
             io.BytesIO(excel_data),
@@ -244,14 +245,14 @@ async def import_device_groups(
 ):
     """导入设备分组数据"""
     try:
-        device_group_import_export = DeviceGroupImportExport()
+        tool = await get_import_export_tool(DeviceGroup)
 
         # 验证文件类型
         if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请上传Excel文件（.xlsx或.xls格式）")
 
         # 执行导入
-        result = await device_group_import_export.import_data(file)
+        result = await tool.import_data(file)
 
         return SuccessResponse(data=result, message="设备分组数据导入完成")
     except HTTPException:
@@ -272,8 +273,8 @@ async def import_device_groups(
 async def export_device_groups():
     """导出设备分组数据"""
     try:
-        device_group_import_export = DeviceGroupImportExport()
-        excel_data = await device_group_import_export.export_data()
+        tool = await get_import_export_tool(DeviceGroup)
+        excel_data = await tool.export_data()
 
         return StreamingResponse(
             io.BytesIO(excel_data),
@@ -296,8 +297,8 @@ async def export_device_groups():
 async def get_device_group_fields():
     """获取设备分组字段信息"""
     try:
-        device_group_import_export = DeviceGroupImportExport()
-        fields = device_group_import_export.get_field_info()
+        tool = await get_import_export_tool(DeviceGroup)
+        fields = tool.get_field_info()
 
         return SuccessResponse(data=fields, message="获取字段信息成功")
     except Exception as e:

@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from fastapi.responses import StreamingResponse
 
 from app.core.dependencies import get_brand_service
+from app.models.network_models import Brand
 from app.schemas.base import SuccessResponse
 from app.schemas.brand import (
     BrandCreateRequest,
@@ -23,8 +24,8 @@ from app.schemas.brand import (
     BrandUpdateRequest,
 )
 from app.services.brand_service import BrandService
-from app.utils.brand_import_export import BrandImportExport
 from app.utils.logger import logger
+from app.utils.universal_import_export import get_import_export_tool
 
 router = APIRouter(prefix="/brands", tags=["品牌管理"])
 
@@ -182,15 +183,21 @@ async def get_brand_stats(
     description="下载品牌数据导入模板文件",
 )
 async def download_brand_template():
-    """下载品牌导入模板"""
+    """下载品牌导入模板 - 使用通用工具"""
     try:
-        brand_import_export = BrandImportExport()
-        excel_data = await brand_import_export.export_template()
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Brand)
+
+        # 生成模板
+        excel_data = await tool.export_template()
+
+        # 生成文件名
+        filename = tool.get_filename("template")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=brand_template.xlsx"},
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     except Exception as e:
         logger.error(f"下载品牌模板失败: {e}")
@@ -208,16 +215,17 @@ async def download_brand_template():
 async def import_brands(
     file: UploadFile = File(..., description="要导入的Excel文件"),
 ):
-    """导入品牌数据"""
+    """导入品牌数据 - 使用通用工具"""
     try:
-        brand_import_export = BrandImportExport()
-
         # 验证文件类型
         if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="请上传Excel文件（.xlsx或.xls格式）"
-            )  # 执行导入
-        result = await brand_import_export.import_data(file)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请上传Excel文件（.xlsx或.xls格式）")
+
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Brand)
+
+        # 执行导入
+        result = await tool.import_data(file)
 
         return SuccessResponse(data=result, message="品牌数据导入完成")
     except HTTPException:
@@ -236,15 +244,21 @@ async def import_brands(
     description="导出品牌数据到Excel文件",
 )
 async def export_brands():
-    """导出品牌数据"""
+    """导出品牌数据 - 使用通用工具"""
     try:
-        brand_import_export = BrandImportExport()
-        excel_data = await brand_import_export.export_data()
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Brand)
+
+        # 导出数据
+        excel_data = await tool.export_data()
+
+        # 生成文件名
+        filename = tool.get_filename("export")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=brands_export.xlsx"},
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     except Exception as e:
         logger.error(f"导出品牌数据失败: {e}")
@@ -260,10 +274,13 @@ async def export_brands():
     description="获取品牌模型的字段信息，用于前端动态生成表单",
 )
 async def get_brand_fields():
-    """获取品牌字段信息"""
+    """获取品牌字段信息 - 使用通用工具"""
     try:
-        brand_import_export = BrandImportExport()
-        fields = brand_import_export.get_field_info()
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Brand)
+
+        # 获取字段信息
+        fields = tool.get_field_info()
 
         return SuccessResponse(data=fields, message="获取字段信息成功")
     except Exception as e:

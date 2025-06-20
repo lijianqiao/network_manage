@@ -18,6 +18,7 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from app.models.network_models import DeviceModel
 from app.schemas.base import SuccessResponse
 from app.schemas.device_model import (
     DeviceModelCreateRequest,
@@ -27,8 +28,8 @@ from app.schemas.device_model import (
     DeviceModelUpdateRequest,
 )
 from app.services.device_model_service import DeviceModelService
-from app.utils.device_model_import_export import DeviceModelImportExport
 from app.utils.logger import logger
+from app.utils.universal_import_export import get_import_export_tool
 
 router = APIRouter(prefix="/device-models", tags=["设备型号管理"])
 
@@ -239,15 +240,21 @@ async def get_device_models_by_brand(
     description="下载设备型号数据导入模板文件",
 )
 async def download_device_model_template():
-    """下载设备型号导入模板"""
+    """下载设备型号导入模板 - 使用通用工具"""
     try:
-        device_model_import_export = DeviceModelImportExport()
-        excel_data = await device_model_import_export.export_template()
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(DeviceModel)
+
+        # 生成模板
+        excel_data = await tool.export_template()
+
+        # 生成文件名
+        filename = tool.get_filename("template")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=device_model_template.xlsx"},
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     except Exception as e:
         logger.error(f"下载设备型号模板失败: {e}")
@@ -265,16 +272,17 @@ async def download_device_model_template():
 async def import_device_models(
     file: UploadFile = File(..., description="要导入的Excel文件"),
 ):
-    """导入设备型号数据"""
+    """导入设备型号数据 - 使用通用工具"""
     try:
-        device_model_import_export = DeviceModelImportExport()
-
         # 验证文件类型
         if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请上传Excel文件（.xlsx或.xls格式）")
 
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(DeviceModel)
+
         # 执行导入
-        result = await device_model_import_export.import_data(file)
+        result = await tool.import_data(file)
 
         return SuccessResponse(data=result, message="设备型号数据导入完成")
     except HTTPException:
@@ -293,15 +301,21 @@ async def import_device_models(
     description="导出设备型号数据到Excel文件",
 )
 async def export_device_models():
-    """导出设备型号数据"""
+    """导出设备型号数据 - 使用通用工具"""
     try:
-        device_model_import_export = DeviceModelImportExport()
-        excel_data = await device_model_import_export.export_data()
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(DeviceModel)
+
+        # 导出数据
+        excel_data = await tool.export_data()
+
+        # 生成文件名
+        filename = tool.get_filename("export")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=device_models_export.xlsx"},
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     except Exception as e:
         logger.error(f"导出设备型号数据失败: {e}")
@@ -317,10 +331,13 @@ async def export_device_models():
     description="获取设备型号模型的字段信息，用于前端动态生成表单",
 )
 async def get_device_model_fields():
-    """获取设备型号字段信息"""
+    """获取设备型号字段信息 - 使用通用工具"""
     try:
-        device_model_import_export = DeviceModelImportExport()
-        fields = device_model_import_export.get_field_info()
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(DeviceModel)
+
+        # 获取字段信息
+        fields = tool.get_field_info()
 
         return SuccessResponse(data=fields, message="获取字段信息成功")
     except Exception as e:

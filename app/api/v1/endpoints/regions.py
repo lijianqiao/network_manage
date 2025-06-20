@@ -18,6 +18,7 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from app.models.network_models import Region
 from app.schemas.base import SuccessResponse
 from app.schemas.region import (
     RegionCreateRequest,
@@ -28,7 +29,7 @@ from app.schemas.region import (
 )
 from app.services.region_service import RegionService
 from app.utils.logger import logger
-from app.utils.region_import_export import region_import_export
+from app.utils.universal_import_export import get_import_export_tool
 
 router = APIRouter(prefix="/regions", tags=["区域管理"])
 
@@ -214,10 +215,16 @@ async def get_regions_count(
 
 @router.get("/export/template", summary="下载区域导入模板")
 async def download_region_template():
-    """下载区域导入模板"""
+    """下载区域导入模板 - 使用通用工具"""
     try:
-        excel_data = await region_import_export.export_template()
-        filename = region_import_export.get_filename("template")
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Region)
+
+        # 生成模板
+        excel_data = await tool.export_template()
+
+        # 生成文件名
+        filename = tool.get_filename("template")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
@@ -234,10 +241,16 @@ async def download_region_template():
 
 @router.get("/export/data", summary="导出区域数据")
 async def export_region_data():
-    """导出区域数据"""
+    """导出区域数据 - 使用通用工具"""
     try:
-        excel_data = await region_import_export.export_data()
-        filename = region_import_export.get_filename("data")
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Region)
+
+        # 导出数据
+        excel_data = await tool.export_data()
+
+        # 生成文件名
+        filename = tool.get_filename("export")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
@@ -256,16 +269,21 @@ async def export_region_data():
 async def import_region_data(
     file: UploadFile = File(..., description="Excel文件"),
 ):
-    """导入区域数据"""
+    """导入区域数据 - 使用通用工具"""
     try:
-        result = await region_import_export.import_data(file)
-        return {
-            "message": "导入完成",
-            "total_rows": result["total_rows"],
-            "success_count": result["success_count"],
-            "error_count": result["error_count"],
-            "errors": result["errors"],
-        }
+        # 验证文件类型
+        if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请上传Excel文件（.xlsx或.xls格式）")
+
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Region)
+
+        # 执行导入
+        result = await tool.import_data(file)
+
+        return SuccessResponse(data=result, message="区域数据导入完成")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"导入区域数据失败: {e}")
         raise HTTPException(
@@ -276,10 +294,15 @@ async def import_region_data(
 
 @router.get("/import/field-info", summary="获取区域字段信息")
 async def get_region_field_info():
-    """获取区域字段信息，用于前端展示"""
+    """获取区域字段信息 - 使用通用工具"""
     try:
-        field_info = region_import_export.get_field_info()
-        return field_info
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Region)
+
+        # 获取字段信息
+        field_info = tool.get_field_info()
+
+        return SuccessResponse(data=field_info, message="获取字段信息成功")
     except Exception as e:
         logger.error(f"获取字段信息失败: {e}")
         raise HTTPException(

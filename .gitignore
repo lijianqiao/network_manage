@@ -14,6 +14,7 @@ wheels/
 fix_*
 *.pyc
 openapi.json
+*.xlsx
 
 # 虚拟环境
 .venv

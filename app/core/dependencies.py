@@ -18,7 +18,8 @@ from app.services.brand_service import BrandService
 from app.services.device_group_service import DeviceGroupService
 from app.services.device_model_service import DeviceModelService
 from app.services.device_service import DeviceService
-from app.services.import_export_service import ImportExportService
+
+# from app.services.import_export_service import ImportExportService
 from app.services.operation_log_service import OperationLogService
 from app.services.region_service import RegionService
 
@@ -103,11 +104,11 @@ class ServiceContainer:
             self._service_instances["operation_log_service"] = OperationLogService(self.get_operation_log_dao())
         return self._service_instances["operation_log_service"]
 
-    def get_import_export_service(self) -> ImportExportService:
-        """获取导入导出服务实例"""
-        if "import_export_service" not in self._service_instances:
-            self._service_instances["import_export_service"] = ImportExportService()
-        return self._service_instances["import_export_service"]
+    # def get_import_export_service(self) -> ImportExportService:
+    #     """获取导入导出服务实例"""
+    #     if "import_export_service" not in self._service_instances:
+    #         self._service_instances["import_export_service"] = ImportExportService()
+    #     return self._service_instances["import_export_service"]
 
 
 # 全局服务容器实例
@@ -148,6 +149,6 @@ def get_operation_log_service() -> OperationLogService:
     return get_service_container().get_operation_log_service()
 
 
-def get_import_export_service() -> ImportExportService:
-    """获取导入导出服务依赖"""
-    return get_service_container().get_import_export_service()
+# def get_import_export_service() -> ImportExportService:
+#     """获取导入导出服务依赖"""
+#     return get_service_container().get_import_export_service()

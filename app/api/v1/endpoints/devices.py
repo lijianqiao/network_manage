@@ -18,7 +18,7 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
-from app.models.network_models import DeviceTypeEnum
+from app.models.network_models import Device, DeviceTypeEnum
 from app.schemas.base import SuccessResponse
 from app.schemas.device import (
     DeviceCreateRequest,
@@ -28,8 +28,8 @@ from app.schemas.device import (
     DeviceUpdateRequest,
 )
 from app.services.device_service import DeviceService
-from app.utils.device_import_export import device_import_export
 from app.utils.logger import logger
+from app.utils.universal_import_export import get_import_export_tool
 
 router = APIRouter(prefix="/devices", tags=["设备管理"])
 
@@ -263,10 +263,14 @@ async def get_devices_by_group(
 
 @router.get("/export/template", summary="下载设备导入模板")
 async def download_device_template():
-    """下载设备导入模板"""
+    """下载设备导入模板 - 使用通用工具"""
     try:
-        excel_data = await device_import_export.export_template()
-        filename = device_import_export.get_filename("template")
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Device)
+
+        # 生成模板
+        excel_data = await tool.export_template()
+        filename = tool.get_filename("template")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
@@ -283,10 +287,14 @@ async def download_device_template():
 
 @router.get("/export/data", summary="导出设备数据")
 async def export_device_data():
-    """导出设备数据"""
+    """导出设备数据 - 使用通用工具"""
     try:
-        excel_data = await device_import_export.export_data()
-        filename = device_import_export.get_filename("data")
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Device)
+
+        # 导出数据
+        excel_data = await tool.export_data()
+        filename = tool.get_filename("export")
 
         return StreamingResponse(
             io.BytesIO(excel_data),
@@ -305,9 +313,19 @@ async def export_device_data():
 async def import_device_data(
     file: UploadFile = File(..., description="Excel文件"),
 ):
-    """导入设备数据"""
+    """导入设备数据 - 使用通用工具"""
     try:
-        result = await device_import_export.import_data(file)
+        # 验证文件类型
+        if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请上传Excel文件（.xlsx或.xls格式）")
+
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Device)
+
+        # 执行导入
+        result = await tool.import_data(file)
+
+        return SuccessResponse(data=result, message="设备数据导入完成")
         return {
             "message": "导入完成",
             "total_rows": result["total_rows"],
@@ -325,10 +343,15 @@ async def import_device_data(
 
 @router.get("/import/field-info", summary="获取设备字段信息")
 async def get_device_field_info():
-    """获取设备字段信息，用于前端展示"""
+    """获取设备字段信息 - 使用通用工具"""
     try:
-        field_info = device_import_export.get_field_info()
-        return field_info
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Device)
+
+        # 获取字段信息
+        field_info = tool.get_field_info()
+
+        return SuccessResponse(data=field_info, message="获取字段信息成功")
     except Exception as e:
         logger.error(f"获取字段信息失败: {e}")
         raise HTTPException(
