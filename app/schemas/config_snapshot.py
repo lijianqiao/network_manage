@@ -14,7 +14,18 @@ from pydantic import Field, field_validator
 
 from app.models.network_models import SnapshotTypeEnum
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema, TimeRangeQuery
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+    TimeRangeQuery,
+)
 
 
 class ConfigSnapshotCreateRequest(BaseCreateSchema):
@@ -219,3 +230,11 @@ class ConfigSnapshotCleanupRequest(BaseCreateSchema):
     snapshot_types: list[SnapshotTypeEnum] | None = Field(default=None, description="要清理的快照类型")
     exclude_referenced: bool = Field(default=True, description="是否排除被引用的快照")
     dry_run: bool = Field(default=True, description="是否仅预览而不实际删除")
+
+
+# 分页和批量操作类型别名
+ConfigSnapshotPaginationResponse = PaginationResponse[ConfigSnapshotListResponse]
+ConfigSnapshotBulkCreateRequest = BulkCreateRequest[ConfigSnapshotCreateRequest]
+ConfigSnapshotBulkUpdateRequest = BulkUpdateRequest
+ConfigSnapshotBulkDeleteRequest = BulkDeleteRequest
+ConfigSnapshotBatchOperationResponse = BatchOperationResponse

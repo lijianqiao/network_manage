@@ -13,7 +13,18 @@ from uuid import UUID
 
 from pydantic import Field
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema, TimeRangeQuery
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+    TimeRangeQuery,
+)
 
 
 class DeviceConnectionStatusCreateRequest(BaseCreateSchema):
@@ -177,3 +188,11 @@ class DeviceReliabilityReportResponse(BaseResponseSchema):
     first_check: datetime = Field(description="首次检查时间")
     last_check: datetime = Field(description="最后检查时间")
     report_period_days: int = Field(description="报告周期（天）")
+
+
+# 分页和批量操作类型别名
+DeviceConnectionStatusPaginationResponse = PaginationResponse[DeviceConnectionStatusResponse]
+DeviceConnectionStatusBulkCreateRequest = BulkCreateRequest[DeviceConnectionStatusCreateRequest]
+DeviceConnectionStatusBulkUpdateRequest = BulkUpdateRequest
+DeviceConnectionStatusBulkDeleteRequest = BulkDeleteRequest
+DeviceConnectionStatusBatchOperationResponse = BatchOperationResponse

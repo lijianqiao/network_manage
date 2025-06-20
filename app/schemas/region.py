@@ -9,7 +9,17 @@
 
 from pydantic import Field, field_validator
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+)
 
 
 class RegionCreateRequest(BaseCreateSchema):
@@ -77,3 +87,11 @@ class RegionStatsResponse(BaseResponseSchema):
     offline_devices: int = Field(description="离线设备数")
     device_groups: int = Field(description="设备分组数")
     recent_operations: int = Field(description="近期操作数")
+
+
+# 分页和批量操作类型别名
+RegionPaginationResponse = PaginationResponse[RegionListResponse]
+RegionBulkCreateRequest = BulkCreateRequest[RegionCreateRequest]
+RegionBulkUpdateRequest = BulkUpdateRequest
+RegionBulkDeleteRequest = BulkDeleteRequest
+RegionBatchOperationResponse = BatchOperationResponse

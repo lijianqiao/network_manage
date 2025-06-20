@@ -13,7 +13,18 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema, TimeRangeQuery
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+    TimeRangeQuery,
+)
 
 
 class ConfigDiffCreateRequest(BaseCreateSchema):
@@ -207,3 +218,11 @@ class ConfigChangeReportResponse(BaseResponseSchema):
     # 导出信息
     export_url: str | None = Field(default=None, description="导出文件URL")
     generated_at: datetime = Field(description="生成时间")
+
+
+# 分页和批量操作类型别名
+ConfigDiffPaginationResponse = PaginationResponse[ConfigDiffListResponse]
+ConfigDiffBulkCreateRequest = BulkCreateRequest[ConfigDiffCreateRequest]
+ConfigDiffBulkUpdateRequest = BulkUpdateRequest
+ConfigDiffBulkDeleteRequest = BulkDeleteRequest
+ConfigDiffBatchOperationResponse = BatchOperationResponse

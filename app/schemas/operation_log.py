@@ -15,7 +15,16 @@ from pydantic import Field
 
 from app.models.network_models import OperationStatusEnum
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, TimeRangeQuery
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    PaginationResponse,
+    TimeRangeQuery,
+)
 
 
 class OperationLogCreateRequest(BaseCreateSchema):
@@ -147,3 +156,13 @@ class OperationLogAnalysisResponse(BaseResponseSchema):
     error_analysis: dict[str, int] = Field(description="错误类型统计")
     device_reliability: list[dict[str, Any]] = Field(description="设备可靠性分析")
     template_performance: list[dict[str, Any]] = Field(description="模板性能分析")
+
+
+# 分页和批量操作类型别名
+OperationLogPaginationResponse = PaginationResponse[OperationLogListResponse]
+OperationLogBulkCreateRequest = BulkCreateRequest[OperationLogCreateRequest]
+OperationLogBulkDeleteRequest = BulkDeleteRequest
+OperationLogBatchOperationResponse = BatchOperationResponse
+
+# 注意：操作日志通常不支持批量更新，因为它是审计记录
+# OperationLogBulkUpdateRequest = BulkUpdateRequest  # 注释掉，不建议使用

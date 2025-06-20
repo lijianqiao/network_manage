@@ -15,7 +15,18 @@ from pydantic import Field, field_validator
 
 from app.models.network_models import RollbackStatusEnum
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema, TimeRangeQuery
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+    TimeRangeQuery,
+)
 
 
 class RollbackOperationCreateRequest(BaseCreateSchema):
@@ -257,3 +268,11 @@ class RollbackReportResponse(BaseResponseSchema):
     # 导出信息
     export_url: str | None = Field(default=None, description="导出文件URL")
     generated_at: datetime = Field(description="生成时间")
+
+
+# 分页和批量操作类型别名
+RollbackOperationPaginationResponse = PaginationResponse[RollbackOperationListResponse]
+RollbackOperationBulkCreateRequest = BulkCreateRequest[RollbackOperationCreateRequest]
+RollbackOperationBulkUpdateRequest = BulkUpdateRequest
+RollbackOperationBulkDeleteRequest = BulkDeleteRequest
+RollbackOperationBatchOperationResponse = BatchOperationResponse

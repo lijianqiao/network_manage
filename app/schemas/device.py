@@ -15,7 +15,17 @@ from pydantic import Field, field_validator
 
 from app.models.network_models import DeviceStatusEnum, DeviceTypeEnum
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+)
 
 
 class DeviceCreateRequest(BaseCreateSchema):
@@ -214,3 +224,11 @@ class DeviceBatchUpdateStatusRequest(BaseCreateSchema):
     device_ids: list[UUID] = Field(min_length=1, max_length=100, description="设备ID列表")
     status: DeviceStatusEnum = Field(description="目标状态")
     reason: str | None = Field(default=None, description="状态变更原因")
+
+
+# 分页和批量操作类型别名
+DevicePaginationResponse = PaginationResponse[DeviceListResponse]
+DeviceBulkCreateRequest = BulkCreateRequest[DeviceCreateRequest]
+DeviceBulkUpdateRequest = BulkUpdateRequest
+DeviceBulkDeleteRequest = BulkDeleteRequest
+DeviceBatchOperationResponse = BatchOperationResponse

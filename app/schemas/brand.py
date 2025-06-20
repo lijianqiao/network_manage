@@ -9,7 +9,17 @@
 
 from pydantic import Field, field_validator
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+)
 
 
 class BrandCreateRequest(BaseCreateSchema):
@@ -86,3 +96,11 @@ class BrandStatsResponse(BaseResponseSchema):
     total_devices: int = Field(description="设备总数")
     online_devices: int = Field(description="在线设备数")
     recent_operations: int = Field(description="近期操作数")
+
+
+# 分页和批量操作类型别名
+BrandPaginationResponse = PaginationResponse[BrandListResponse]
+BrandBulkCreateRequest = BulkCreateRequest[BrandCreateRequest]
+BrandBulkUpdateRequest = BulkUpdateRequest
+BrandBulkDeleteRequest = BulkDeleteRequest
+BrandBatchOperationResponse = BatchOperationResponse

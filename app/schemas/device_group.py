@@ -11,7 +11,17 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+)
 
 
 class DeviceGroupCreateRequest(BaseCreateSchema):
@@ -89,3 +99,11 @@ class DeviceGroupBatchAssignRequest(BaseCreateSchema):
 
     group_id: UUID = Field(description="目标分组ID")
     device_ids: list[UUID] = Field(min_length=1, max_length=100, description="设备ID列表")
+
+
+# 分页和批量操作类型别名
+DeviceGroupPaginationResponse = PaginationResponse[DeviceGroupListResponse]
+DeviceGroupBulkCreateRequest = BulkCreateRequest[DeviceGroupCreateRequest]
+DeviceGroupBulkUpdateRequest = BulkUpdateRequest
+DeviceGroupBulkDeleteRequest = BulkDeleteRequest
+DeviceGroupBatchOperationResponse = BatchOperationResponse

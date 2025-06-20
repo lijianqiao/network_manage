@@ -11,7 +11,17 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+)
 
 
 class DeviceModelCreateRequest(BaseCreateSchema):
@@ -82,3 +92,11 @@ class DeviceModelStatsResponse(BaseResponseSchema):
     online_devices: int = Field(description="在线设备数")
     offline_devices: int = Field(description="离线设备数")
     recent_additions: int = Field(description="近期新增设备数")
+
+
+# 分页和批量操作类型别名
+DeviceModelPaginationResponse = PaginationResponse[DeviceModelListResponse]
+DeviceModelBulkCreateRequest = BulkCreateRequest[DeviceModelCreateRequest]
+DeviceModelBulkUpdateRequest = BulkUpdateRequest
+DeviceModelBulkDeleteRequest = BulkDeleteRequest
+DeviceModelBatchOperationResponse = BatchOperationResponse

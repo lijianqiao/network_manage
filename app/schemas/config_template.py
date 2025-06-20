@@ -14,7 +14,17 @@ from pydantic import Field, field_validator
 
 from app.models.network_models import TemplateTypeEnum
 
-from .base import BaseCreateSchema, BaseQueryParams, BaseResponseSchema, BaseUpdateSchema
+from .base import (
+    BaseCreateSchema,
+    BaseQueryParams,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+    BatchOperationResponse,
+    BulkCreateRequest,
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    PaginationResponse,
+)
 
 
 class ConfigTemplateCreateRequest(BaseCreateSchema):
@@ -197,3 +207,17 @@ class TemplateStatsResponse(BaseResponseSchema):
     success_rate: float = Field(description="成功率")
     avg_execution_time: float = Field(description="平均执行时间")
     last_used: str | None = Field(default=None, description="最后使用时间")
+
+
+# 分页和批量操作类型别名
+ConfigTemplatePaginationResponse = PaginationResponse[ConfigTemplateListResponse]
+ConfigTemplateBulkCreateRequest = BulkCreateRequest[ConfigTemplateCreateRequest]
+ConfigTemplateBulkUpdateRequest = BulkUpdateRequest
+ConfigTemplateBulkDeleteRequest = BulkDeleteRequest
+ConfigTemplateBatchOperationResponse = BatchOperationResponse
+
+TemplateCommandPaginationResponse = PaginationResponse[TemplateCommandResponse]
+TemplateCommandBulkCreateRequest = BulkCreateRequest[TemplateCommandCreateRequest]
+TemplateCommandBulkUpdateRequest = BulkUpdateRequest
+TemplateCommandBulkDeleteRequest = BulkDeleteRequest
+TemplateCommandBatchOperationResponse = BatchOperationResponse
