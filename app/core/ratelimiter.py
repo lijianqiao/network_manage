@@ -10,16 +10,16 @@ import time
 from collections import defaultdict
 from threading import Lock
 
-from fastapi import FastAPI, Request
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
 
+from app.core.config import settings
+
 # 内存限流存储（生产建议用Redis等分布式存储）
 _rate_limit_data = defaultdict(list)
 _rate_limit_lock = Lock()
-_rate_limit_num = 50  # 每IP每分钟最大请求数
-_rate_limit_time_window = 60  # 限流时间窗口（秒）
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -28,7 +28,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """
 
     def __init__(
-        self, app: ASGIApp, max_requests: int = _rate_limit_num, window_seconds: int = _rate_limit_time_window
+        self,
+        app: ASGIApp,
+        max_requests: int = settings.RATE_LIMIT_MAX_REQUESTS,
+        window_seconds: int = settings.RATE_LIMIT_WINDOW,
     ):
         super().__init__(app)
         self.max_requests = max_requests
@@ -62,8 +65,3 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.client:
             return request.client.host
         return "unknown"
-
-
-def setup_ratelimiter(app: FastAPI) -> None:
-    """注册全局IP限流中间件（每IP每分钟50次）"""
-    app.add_middleware(RateLimitMiddleware, max_requests=_rate_limit_num, window_seconds=_rate_limit_time_window)

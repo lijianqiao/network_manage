@@ -174,6 +174,11 @@ class Settings(BaseSettings):
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO")
 
+    # 限流配置
+    RATE_LIMIT_ENABLED: bool = Field(default=False)
+    RATE_LIMIT_WINDOW: int = Field(default=60)  # 窗口时间
+    RATE_LIMIT_MAX_REQUESTS: int = Field(default=100)  # 最大请求数
+
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, v: str) -> str:

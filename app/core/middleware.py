@@ -17,6 +17,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
+from app.core.ratelimiter import RateLimitMiddleware
 from app.utils.logger import logger
 
 
@@ -85,6 +86,17 @@ def setup_middlewares(app: FastAPI) -> None:
             allow_methods=["*"],  # 生产环境中建议指定具体方法，例如: ["GET", "POST", "PUT", "DELETE"]
             allow_headers=["*"],  # 生产环境中建议指定具体头部，例如: ["Content-Type", "Authorization"]
         )
+
+    # 限流中间件
+    # 注意：此限流中间件是基于内存的，适用于开发和小规模应用
+    # 对于生产环境，建议使用分布式限流
+    # 例如使用Redis等持久化存储来实现限流
+    # 这里使用了自定义的 RateLimitMiddleware
+    # 该中间件限制每个IP每分钟最多100次请求
+    # 可以根据需要调整环境变量中 RATE_LIMIT_MAX_REQUESTS 和 RATE_LIMIT_WINDOW 参数
+    app.add_middleware(
+        RateLimitMiddleware, max_requests=settings.RATE_LIMIT_MAX_REQUESTS, window_seconds=settings.RATE_LIMIT_WINDOW
+    )
 
     # Gzip压缩中间件
     app.add_middleware(GZipMiddleware, minimum_size=1000)
