@@ -140,9 +140,9 @@ async def delete_brand(
 ) -> SuccessResponse:
     """删除品牌"""
     try:
-        await brand_service.delete(brand_id, soft_delete=soft_delete)
+        result = await brand_service.delete(brand_id, soft_delete=soft_delete)
         logger.info(f"成功删除品牌: {brand_id}")
-        return SuccessResponse(message="品牌删除成功")
+        return result
     except Exception as e:
         logger.error(f"删除品牌失败: {e}")
         raise HTTPException(

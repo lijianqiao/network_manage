@@ -16,6 +16,7 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from app.schemas.base import SuccessResponse
 from app.schemas.region import (
     RegionCreateRequest,
     RegionListResponse,
@@ -24,6 +25,7 @@ from app.schemas.region import (
     RegionUpdateRequest,
 )
 from app.services.region_service import RegionService
+from app.utils.logger import logger
 
 router = APIRouter(prefix="/regions", tags=["区域管理"])
 
@@ -122,16 +124,20 @@ async def update_region(
 
 @router.delete(
     "/{region_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=SuccessResponse,
     summary="删除区域",
+    description="删除指定区域",
 )
 async def delete_region(
     region_id: UUID,
+    soft_delete: bool = Query(True, description="是否软删除"),
     service: RegionService = Depends(get_region_service),
-) -> None:
+) -> SuccessResponse:
     """删除区域"""
     try:
-        await service.delete(region_id)
+        result = await service.delete(region_id, soft_delete=soft_delete)
+        logger.info(f"成功删除区域: {region_id}")
+        return result
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

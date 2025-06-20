@@ -269,10 +269,8 @@ class BaseService[
                 raise NotFoundError(f"{self.entity_name}不存在")
 
             # 验证删除规则
-            await self._validate_delete(id, existing)
-
-            # 执行删除
-            if soft_delete and hasattr(existing, "is_deleted"):
+            await self._validate_delete(id, existing)  # 执行删除
+            if soft_delete and "is_deleted" in existing._meta.fields_map:
                 success = await self.dao.soft_delete_by_id(id)
                 delete_type = "软删除"
             else:

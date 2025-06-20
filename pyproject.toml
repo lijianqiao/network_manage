@@ -14,11 +14,16 @@ dependencies = [
     "aerich>=0.9.1",
     "asyncpg>=0.30.0",
     "fastapi[standard]>=0.115.12",
+    "fastexcel>=0.14.0",
     "loguru>=0.7.3",
+    "openpyxl>=3.1.5",
+    "polars>=1.31.0",
     "pydantic-settings>=2.9.1",
+    "python-multipart>=0.0.20",
     "redis[hiredis]>=6.2.0",
     "tortoise-orm>=0.25.1",
     "uvicorn[standard]>=0.34.3",
+    "xlsxwriter>=3.2.5",
 ]
 
 [tool.hatch.build.targets.wheel]

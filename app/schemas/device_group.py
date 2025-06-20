@@ -28,7 +28,6 @@ class DeviceGroupCreateRequest(BaseCreateSchema):
     """设备分组创建请求"""
 
     name: str = Field(min_length=1, max_length=100, description="分组名称")
-    region_id: UUID | None = Field(default=None, description="关联区域ID（可选）")
 
     @field_validator("name")
     @classmethod
@@ -43,17 +42,12 @@ class DeviceGroupUpdateRequest(BaseUpdateSchema):
     """设备分组更新请求"""
 
     name: str | None = Field(default=None, min_length=1, max_length=100, description="分组名称")
-    region_id: UUID | None = Field(default=None, description="关联区域ID")
 
 
 class DeviceGroupResponse(BaseResponseSchema):
     """设备分组响应"""
 
     name: str = Field(description="分组名称")
-    region_id: UUID | None = Field(description="区域ID")
-
-    # 关联区域信息
-    region_name: str | None = Field(default=None, description="区域名称")
 
     # 统计信息
     device_count: int | None = Field(default=0, description="分组内设备数量")
@@ -77,8 +71,6 @@ class DeviceGroupQueryParams(BaseQueryParams):
     """设备分组查询参数"""
 
     name: str | None = Field(default=None, description="按分组名称筛选")
-    region_id: UUID | None = Field(default=None, description="按区域ID筛选")
-    region_name: str | None = Field(default=None, description="按区域名称筛选")
     has_devices: bool | None = Field(default=None, description="是否包含设备")
 
 
@@ -86,7 +78,6 @@ class DeviceGroupStatsResponse(BaseResponseSchema):
     """设备分组统计响应"""
 
     name: str = Field(description="分组名称")
-    region_name: str | None = Field(description="区域名称")
     total_devices: int = Field(description="总设备数")
     online_devices: int = Field(description="在线设备数")
     offline_devices: int = Field(description="离线设备数")

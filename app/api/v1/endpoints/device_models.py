@@ -16,6 +16,7 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from app.schemas.base import SuccessResponse
 from app.schemas.device_model import (
     DeviceModelCreateRequest,
     DeviceModelListResponse,
@@ -24,6 +25,7 @@ from app.schemas.device_model import (
     DeviceModelUpdateRequest,
 )
 from app.services.device_model_service import DeviceModelService
+from app.utils.logger import logger
 
 router = APIRouter(prefix="/device-models", tags=["设备型号管理"])
 
@@ -122,16 +124,20 @@ async def update_device_model(
 
 @router.delete(
     "/{device_model_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=SuccessResponse,
     summary="删除设备型号",
+    description="删除指定设备型号",
 )
 async def delete_device_model(
     device_model_id: UUID,
+    soft_delete: bool = Query(True, description="是否软删除"),
     service: DeviceModelService = Depends(get_device_model_service),
-) -> None:
+) -> SuccessResponse:
     """删除设备型号"""
     try:
-        await service.delete(device_model_id)
+        result = await service.delete(device_model_id, soft_delete=soft_delete)
+        logger.info(f"成功删除设备型号: {device_model_id}")
+        return result
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

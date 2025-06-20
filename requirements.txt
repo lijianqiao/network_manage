@@ -14,3 +14,10 @@ asyncpg
 
 # cache
 redis[hiredis]
+
+# import/export
+polars
+openpyxl
+fastexcel
+xlsxwriter
+python-multipart

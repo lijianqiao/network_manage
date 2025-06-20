@@ -12,6 +12,7 @@ from app.api.v1.endpoints.brands import router as brands_router
 from app.api.v1.endpoints.device_groups import router as device_groups_router
 from app.api.v1.endpoints.device_models import router as device_models_router
 from app.api.v1.endpoints.devices import router as devices_router
+from app.api.v1.endpoints.import_export import router as import_export_router
 from app.api.v1.endpoints.operation_logs import router as operation_logs_router
 from app.api.v1.endpoints.regions import router as regions_router
 
@@ -25,3 +26,4 @@ api_router.include_router(device_models_router)
 api_router.include_router(device_groups_router)
 api_router.include_router(devices_router)
 api_router.include_router(operation_logs_router)
+api_router.include_router(import_export_router)

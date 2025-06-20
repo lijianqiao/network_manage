@@ -410,7 +410,7 @@ class BaseDAO[ModelType: Model]:
             是否删除成功
         """
         # 检查模型是否有is_deleted字段
-        if not hasattr(self.model, "is_deleted"):
+        if "is_deleted" not in self.model._meta.fields_map:
             logger.warning(f"{self.model.__name__} does not support soft delete (no is_deleted field)")
             return False
 

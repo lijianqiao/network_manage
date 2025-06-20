@@ -54,21 +54,10 @@ class DeviceGroupService(
 
         Raises:
             ValidationError: 验证失败
-        """  # 检查设备组名称是否重复
-        filters = {"name": data.name}
-        if data.region_id:
-            filters["region_id"] = str(data.region_id)
-
-        if await self.dao.exists(**filters):
-            if data.region_id:
-                raise ValidationError(f"区域内设备组名称 {data.name} 已存在")
-            else:
-                raise ValidationError(f"设备组名称 {data.name} 已存在")
-
-        # 验证关联的区域是否存在
-        if data.region_id:
-            # 这里应该验证region_id是否存在，暂时跳过
-            pass
+        """
+        # 检查设备组名称是否重复
+        if await self.dao.exists(name=data.name):
+            raise ValidationError(f"设备组名称 {data.name} 已存在")
 
         logger.debug(f"设备组创建数据验证通过: {data.name}")
 
@@ -81,27 +70,13 @@ class DeviceGroupService(
             existing: 现有设备组记录
 
         Raises:
-            ValidationError: 验证失败
-        """  # 检查设备组名称是否重复（排除自身）
+            ValidationError: 验证失败"""
+        # 检查设备组名称是否重复（排除自身）
         if data.name and data.name != existing.name:
-            filters = {"name": data.name}
-            # 如果指定了新的区域ID，则在该区域内检查重复
-            region_id = data.region_id if data.region_id is not None else getattr(existing, "region_id", None)
-            if region_id:
-                filters["region_id"] = str(region_id)
-
             # 检查是否存在同名的其他设备组
-            existing_groups = await self.dao.list_by_filters(filters)
+            existing_groups = await self.dao.list_by_filters({"name": data.name})
             if existing_groups and any(group.id != id for group in existing_groups):
-                if region_id:
-                    raise ValidationError(f"区域内设备组名称 {data.name} 已存在")
-                else:
-                    raise ValidationError(f"设备组名称 {data.name} 已存在")
-
-        # 验证关联的区域是否存在
-        if data.region_id:
-            # 这里应该验证region_id是否存在，暂时跳过
-            pass
+                raise ValidationError(f"设备组名称 {data.name} 已存在")
 
         logger.debug(f"设备组更新数据验证通过: {existing.name} -> {data.name or existing.name}")
 
@@ -133,14 +108,6 @@ class DeviceGroupService(
         # 按设备组名称过滤
         if query_params.name:
             filters["name__icontains"] = query_params.name
-
-        # 按区域ID过滤
-        if query_params.region_id:
-            filters["region_id"] = query_params.region_id
-
-        # 按区域名称过滤
-        if query_params.region_name:
-            filters["region__name__icontains"] = query_params.region_name
 
         # 按是否有设备过滤
         if query_params.has_devices is not None:
@@ -175,9 +142,7 @@ class DeviceGroupService(
         """
         try:
             # 获取设备组基本信息
-            device_group = await self.get_by_id(id)
-
-            # 暂时设置默认统计值
+            device_group = await self.get_by_id(id)  # 暂时设置默认统计值
             # 在实际项目中，应该查询组内的设备数据
             total_devices = 0
             online_devices = 0
@@ -188,7 +153,6 @@ class DeviceGroupService(
             return DeviceGroupStatsResponse(
                 id=device_group.id,
                 name=device_group.name,
-                region_name=getattr(device_group, "region_name", None),
                 total_devices=total_devices,
                 online_devices=online_devices,
                 offline_devices=offline_devices,
@@ -202,23 +166,6 @@ class DeviceGroupService(
 
         except Exception as e:
             logger.error(f"获取设备组 {id} 统计信息失败: {e}")
-            raise
-
-    async def get_groups_by_region(self, region_id: UUID) -> list[DeviceGroupListResponse]:
-        """根据区域ID获取设备组列表
-
-        Args:
-            region_id: 区域ID
-
-        Returns:
-            设备组列表
-        """
-        try:
-            filters = {"region_id": region_id, "is_deleted": False}
-            return await self.list_all(filters=filters)
-
-        except Exception as e:
-            logger.error(f"获取区域 {region_id} 的设备组列表失败: {e}")
             raise
 
     async def search_by_name(self, name_keyword: str) -> list[DeviceGroupListResponse]:
@@ -294,29 +241,6 @@ class DeviceGroupService(
 
         except Exception as e:
             logger.error(f"批量分配设备到设备组失败: {e}")
-            raise
-
-    async def move_group_to_region(self, group_id: UUID, target_region_id: UUID | None) -> DeviceGroupListResponse:
-        """移动设备组到另一个区域
-
-        Args:
-            group_id: 设备组ID
-            target_region_id: 目标区域ID（None表示移到无区域分组）
-
-        Returns:
-            更新后的设备组响应
-        """
-        try:
-            # 如果目标区域存在，验证其是否有效
-            if target_region_id:
-                # 这里应该验证target_region_id是否存在，暂时跳过
-                pass
-
-            update_data = DeviceGroupUpdateRequest(region_id=target_region_id)
-            return await self.update(group_id, update_data)
-
-        except Exception as e:
-            logger.error(f"移动设备组 {group_id} 到区域 {target_region_id} 失败: {e}")
             raise
 
     async def get_empty_groups(self) -> list[DeviceGroupListResponse]:

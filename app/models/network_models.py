@@ -150,11 +150,9 @@ class DeviceGroup(BaseModel):
 
     用于对设备进行逻辑分组：
     - name: 分组唯一名称（如"核心交换机"）
-    - region: 可选关联区域
     """
 
     name = fields.CharField(max_length=100, unique=True, description="分组唯一名称")
-    region = fields.ForeignKeyField("models.Region", related_name="device_groups", null=True, description="关联区域")
 
     class Meta:  # type: ignore
         table = "device_groups"
