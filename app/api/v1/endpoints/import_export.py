@@ -154,3 +154,14 @@ async def get_example_data(model_name: str, service: ImportExportService = Depen
     except Exception as e:
         logger.error(f"获取示例数据失败: {e}")
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=f"获取示例数据失败: {str(e)}") from e
+
+
+@router.get("/models/{model_name}/fields", summary="获取模型字段详细信息")
+async def get_model_fields(model_name: str, service: ImportExportService = Depends(get_import_export_service)):
+    """获取指定模型的字段详细信息，包括必需字段提示"""
+    try:
+        field_info = service.get_model_field_info(model_name)
+        return field_info
+    except Exception as e:
+        logger.error(f"获取模型字段信息失败: {e}")
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=f"获取模型字段信息失败: {str(e)}") from e

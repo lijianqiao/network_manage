@@ -6,9 +6,11 @@
 @Docs: 设备管理API端点
 """
 
+import io
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from app.core.dependencies import get_device_service
 from app.core.exceptions import (
@@ -26,6 +28,7 @@ from app.schemas.device import (
     DeviceUpdateRequest,
 )
 from app.services.device_service import DeviceService
+from app.utils.device_import_export import device_import_export
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/devices", tags=["设备管理"])
@@ -255,4 +258,80 @@ async def get_devices_by_group(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"查询设备失败: {str(e)}",
+        ) from e
+
+
+@router.get("/export/template", summary="下载设备导入模板")
+async def download_device_template():
+    """下载设备导入模板"""
+    try:
+        excel_data = await device_import_export.export_template()
+        filename = device_import_export.get_filename("template")
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        logger.error(f"下载设备模板失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"下载模板失败: {str(e)}",
+        ) from e
+
+
+@router.get("/export/data", summary="导出设备数据")
+async def export_device_data():
+    """导出设备数据"""
+    try:
+        excel_data = await device_import_export.export_data()
+        filename = device_import_export.get_filename("data")
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        logger.error(f"导出设备数据失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"导出数据失败: {str(e)}",
+        ) from e
+
+
+@router.post("/import", summary="导入设备数据")
+async def import_device_data(
+    file: UploadFile = File(..., description="Excel文件"),
+):
+    """导入设备数据"""
+    try:
+        result = await device_import_export.import_data(file)
+        return {
+            "message": "导入完成",
+            "total_rows": result["total_rows"],
+            "success_count": result["success_count"],
+            "error_count": result["error_count"],
+            "errors": result["errors"],
+        }
+    except Exception as e:
+        logger.error(f"导入设备数据失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"导入失败: {str(e)}",
+        ) from e
+
+
+@router.get("/import/field-info", summary="获取设备字段信息")
+async def get_device_field_info():
+    """获取设备字段信息，用于前端展示"""
+    try:
+        field_info = device_import_export.get_field_info()
+        return field_info
+    except Exception as e:
+        logger.error(f"获取字段信息失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取字段信息失败: {str(e)}",
         ) from e

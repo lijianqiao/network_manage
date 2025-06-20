@@ -6,9 +6,11 @@
 @Docs: 设备组管理API端点
 """
 
+import io
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from app.core.dependencies import get_device_group_service
 from app.core.exceptions import (
@@ -25,6 +27,7 @@ from app.schemas.device_group import (
     DeviceGroupUpdateRequest,
 )
 from app.services.device_group_service import DeviceGroupService
+from app.utils.device_group_import_export import DeviceGroupImportExport
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/device-groups", tags=["设备组管理"])
@@ -204,4 +207,102 @@ async def get_device_groups_count(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"统计设备组失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/template",
+    summary="下载设备分组导入模板",
+    description="下载设备分组数据导入模板文件",
+)
+async def download_device_group_template():
+    """下载设备分组导入模板"""
+    try:
+        device_group_import_export = DeviceGroupImportExport()
+        excel_data = await device_group_import_export.export_template()
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=device_group_template.xlsx"},
+        )
+    except Exception as e:
+        logger.error(f"下载设备分组模板失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"下载模板失败: {str(e)}",
+        ) from e
+
+
+@router.post(
+    "/import",
+    summary="导入设备分组数据",
+    description="从Excel文件导入设备分组数据",
+)
+async def import_device_groups(
+    file: UploadFile = File(..., description="要导入的Excel文件"),
+):
+    """导入设备分组数据"""
+    try:
+        device_group_import_export = DeviceGroupImportExport()
+
+        # 验证文件类型
+        if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请上传Excel文件（.xlsx或.xls格式）")
+
+        # 执行导入
+        result = await device_group_import_export.import_data(file)
+
+        return SuccessResponse(data=result, message="设备分组数据导入完成")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"导入设备分组数据失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"导入失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/export",
+    summary="导出设备分组数据",
+    description="导出设备分组数据到Excel文件",
+)
+async def export_device_groups():
+    """导出设备分组数据"""
+    try:
+        device_group_import_export = DeviceGroupImportExport()
+        excel_data = await device_group_import_export.export_data()
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=device_groups_export.xlsx"},
+        )
+    except Exception as e:
+        logger.error(f"导出设备分组数据失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"导出失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/fields",
+    summary="获取设备分组字段信息",
+    description="获取设备分组模型的字段信息，用于前端动态生成表单",
+)
+async def get_device_group_fields():
+    """获取设备分组字段信息"""
+    try:
+        device_group_import_export = DeviceGroupImportExport()
+        fields = device_group_import_export.get_field_info()
+
+        return SuccessResponse(data=fields, message="获取字段信息成功")
+    except Exception as e:
+        logger.error(f"获取设备分组字段信息失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取字段信息失败: {str(e)}",
         ) from e

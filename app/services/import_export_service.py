@@ -57,9 +57,9 @@ class ImportExportService:
             "foreign_keys": {"brand": Brand},
         },
         "device_group": {
-            "display_fields": ["name", "description", "region"],
+            "display_fields": ["name", "description"],
             "required_fields": ["name"],
-            "foreign_keys": {"region": Region},
+            "foreign_keys": {},
         },
         "device": {
             "display_fields": [
@@ -244,9 +244,7 @@ class ImportExportService:
                         if field not in mapping["foreign_keys"]:
                             value = row.get(field)
                             if value is not None and str(value).strip():
-                                create_data[field] = str(value).strip()
-
-                    # 处理外键字段
+                                create_data[field] = str(value).strip()  # 处理外键字段
                     for fk_field, fk_model in mapping["foreign_keys"].items():
                         fk_value = row.get(fk_field)
                         if fk_value and str(fk_value).strip():
@@ -257,8 +255,8 @@ class ImportExportService:
 
                             if not fk_obj:
                                 if create_missing_fk:
-                                    # 创建缺失的外键对象
-                                    fk_obj = await fk_model.create(name=fk_name)
+                                    # 根据模型类型创建缺失的外键对象
+                                    fk_obj = await self._create_missing_foreign_key(fk_model, fk_name, row)
                                     logger.info(f"自动创建{fk_model.__name__}: {fk_name}")
                                 else:
                                     raise ValueError(f"外键 {fk_field} 的值 '{fk_name}' 不存在")
@@ -296,6 +294,46 @@ class ImportExportService:
             logger.error(f"导入数据失败: {e}")
             raise BusinessError(f"导入数据失败: {str(e)}") from e
 
+    async def _create_missing_foreign_key(self, fk_model: type, fk_name: str, row: dict) -> Any:
+        """创建缺失的外键记录
+
+        Args:
+            fk_model: 外键模型类
+            fk_name: 外键名称
+            row: 当前行数据（可能包含额外字段）
+
+        Returns:
+            创建的外键对象
+        """
+        create_data = {"name": fk_name}
+
+        # 根据不同的模型类型设置必要的默认值
+        if fk_model == Region:
+            # 区域需要snmp_community_string和default_cli_username
+            create_data["snmp_community_string"] = row.get("snmp_community_string", "public")
+            create_data["default_cli_username"] = row.get("default_cli_username", "admin")
+            # 如果有description，也添加进去
+            if row.get("description"):
+                create_data["description"] = str(row["description"]).strip()
+
+        elif fk_model == Brand:
+            # 品牌需要platform_type
+            create_data["platform_type"] = row.get("platform_type", "generic")
+            if row.get("description"):
+                create_data["description"] = str(row["description"]).strip()
+
+        elif fk_model == DeviceModel:
+            # 设备型号需要brand外键，这里只创建基本记录
+            if row.get("description"):
+                create_data["description"] = str(row["description"]).strip()
+
+        elif fk_model == DeviceGroup:
+            # 设备组
+            if row.get("description"):
+                create_data["description"] = str(row["description"]).strip()
+
+        return await fk_model.create(**create_data)
+
     def get_filename(self, model_name: str, file_type: str) -> str:
         """生成文件名
 
@@ -308,3 +346,84 @@ class ImportExportService:
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"{model_name}_{file_type}_{timestamp}.xlsx"
+
+    def get_model_field_info(self, model_name: str) -> dict[str, Any]:
+        """获取模型字段信息
+
+        Args:
+            model_name: 模型名称
+
+        Returns:
+            包含字段信息的字典
+
+        Raises:
+            ValidationError: 当模型名称不支持时
+        """
+        if model_name not in self.SUPPORTED_MODELS:
+            raise ValidationError(f"不支持的模型: {model_name}")
+
+        mapping = self.FIELD_MAPPINGS[model_name]
+
+        # 构建字段信息
+        field_info = {
+            "model_name": model_name,
+            "display_name": self._get_model_display_name(model_name),
+            "fields": [],
+            "required_fields": mapping["required_fields"],
+            "foreign_keys": list(mapping["foreign_keys"].keys()),
+        }
+
+        # 详细字段信息
+        field_descriptions = self._get_field_descriptions(model_name)
+        for field in mapping["display_fields"]:
+            field_detail = {
+                "name": field,
+                "display_name": field_descriptions.get(field, field),
+                "required": field in mapping["required_fields"],
+                "is_foreign_key": field in mapping["foreign_keys"],
+                "foreign_model": mapping["foreign_keys"].get(field).__name__
+                if field in mapping["foreign_keys"]
+                else None,
+            }
+            field_info["fields"].append(field_detail)
+
+        return field_info
+
+    def _get_model_display_name(self, model_name: str) -> str:
+        """获取模型显示名称"""
+        display_names = {
+            "region": "区域",
+            "brand": "品牌",
+            "device_model": "设备型号",
+            "device_group": "设备组",
+            "device": "设备",
+        }
+        return display_names.get(model_name, model_name)
+
+    def _get_field_descriptions(self, model_name: str) -> dict[str, str]:
+        """获取字段中文描述"""
+        descriptions = {
+            "region": {
+                "name": "区域名称",
+                "description": "区域描述",
+                "snmp_community_string": "SNMP社区字符串",
+                "default_cli_username": "默认CLI用户名",
+            },
+            "brand": {"name": "品牌名称", "description": "品牌描述", "platform_type": "平台类型"},
+            "device_model": {"name": "型号名称", "description": "型号描述", "brand": "所属品牌"},
+            "device_group": {"name": "分组名称", "description": "分组描述"},
+            "device": {
+                "name": "设备名称",
+                "ip_address": "IP地址",
+                "description": "设备描述",
+                "region": "所属区域",
+                "device_group": "所属分组",
+                "model": "设备型号",
+                "device_type": "设备类型",
+                "serial_number": "序列号",
+                "is_dynamic_password": "是否动态密码",
+                "cli_username": "CLI用户名",
+                "status": "设备状态",
+            },
+        }
+        return descriptions.get(model_name, {})

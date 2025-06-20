@@ -6,9 +6,11 @@
 @Docs: 区域管理API端点
 """
 
+import io
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from app.core.dependencies import get_region_service
 from app.core.exceptions import (
@@ -26,6 +28,7 @@ from app.schemas.region import (
 )
 from app.services.region_service import RegionService
 from app.utils.logger import logger
+from app.utils.region_import_export import region_import_export
 
 router = APIRouter(prefix="/regions", tags=["区域管理"])
 
@@ -206,4 +209,80 @@ async def get_regions_count(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"统计区域失败: {str(e)}",
+        ) from e
+
+
+@router.get("/export/template", summary="下载区域导入模板")
+async def download_region_template():
+    """下载区域导入模板"""
+    try:
+        excel_data = await region_import_export.export_template()
+        filename = region_import_export.get_filename("template")
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        logger.error(f"下载区域模板失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"下载模板失败: {str(e)}",
+        ) from e
+
+
+@router.get("/export/data", summary="导出区域数据")
+async def export_region_data():
+    """导出区域数据"""
+    try:
+        excel_data = await region_import_export.export_data()
+        filename = region_import_export.get_filename("data")
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        logger.error(f"导出区域数据失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"导出数据失败: {str(e)}",
+        ) from e
+
+
+@router.post("/import", summary="导入区域数据")
+async def import_region_data(
+    file: UploadFile = File(..., description="Excel文件"),
+):
+    """导入区域数据"""
+    try:
+        result = await region_import_export.import_data(file)
+        return {
+            "message": "导入完成",
+            "total_rows": result["total_rows"],
+            "success_count": result["success_count"],
+            "error_count": result["error_count"],
+            "errors": result["errors"],
+        }
+    except Exception as e:
+        logger.error(f"导入区域数据失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"导入失败: {str(e)}",
+        ) from e
+
+
+@router.get("/import/field-info", summary="获取区域字段信息")
+async def get_region_field_info():
+    """获取区域字段信息，用于前端展示"""
+    try:
+        field_info = region_import_export.get_field_info()
+        return field_info
+    except Exception as e:
+        logger.error(f"获取字段信息失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取字段信息失败: {str(e)}",
         ) from e
