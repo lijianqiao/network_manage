@@ -9,6 +9,7 @@
 from collections.abc import Callable
 from functools import wraps
 from typing import Any, TypeVar
+from uuid import UUID
 
 from tortoise.exceptions import DoesNotExist, IntegrityError
 from tortoise.models import Model
@@ -119,7 +120,7 @@ class BaseDAO[ModelType: Model]:
             logger.error(f"Unexpected error in bulk create {self.model.__name__}: {e}")
             raise
 
-    async def get_by_id(self, id: int) -> ModelType | None:
+    async def get_by_id(self, id: UUID) -> ModelType | None:
         """根据ID获取记录
 
         Args:
@@ -136,7 +137,7 @@ class BaseDAO[ModelType: Model]:
             logger.error(f"Error getting {self.model.__name__} by id {id}: {e}")
             raise
 
-    async def get_or_404(self, id: int) -> ModelType:
+    async def get_or_404(self, id: UUID) -> ModelType:
         """根据ID获取记录，不存在则抛出异常
 
         Args:
@@ -308,7 +309,7 @@ class BaseDAO[ModelType: Model]:
             },
         }
 
-    async def update_by_id(self, id: int, **kwargs) -> ModelType | None:
+    async def update_by_id(self, id: UUID, **kwargs) -> ModelType | None:
         """根据ID更新记录
 
         Args:
@@ -384,7 +385,7 @@ class BaseDAO[ModelType: Model]:
         """
         return await self.model.filter(**filters).update(**kwargs)
 
-    async def delete_by_id(self, id: int) -> bool:
+    async def delete_by_id(self, id: UUID) -> bool:
         """根据ID删除记录
 
         Args:
@@ -399,7 +400,7 @@ class BaseDAO[ModelType: Model]:
             return True
         return False
 
-    async def soft_delete_by_id(self, id: int) -> bool:
+    async def soft_delete_by_id(self, id: UUID) -> bool:
         """根据ID软删除记录（标记为已删除）
 
         Args:
@@ -479,7 +480,7 @@ class BaseDAO[ModelType: Model]:
         """
         return await self.model.filter(**filters).exists()
 
-    async def exists_by_id(self, id: int) -> bool:
+    async def exists_by_id(self, id: UUID) -> bool:
         """检查指定ID的记录是否存在
 
         Args:

@@ -8,7 +8,7 @@
 """
 
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -42,7 +42,7 @@ class StatusResponse(BaseSchema):
     message: str = Field(description="状态消息")
 
 
-class SuccessResponse(BaseSchema, Generic[T]):
+class SuccessResponse[T](BaseSchema):
     """统一成功响应模型"""
 
     success: bool = Field(default=True, description="请求是否成功")
@@ -72,7 +72,7 @@ class PaginationInfo(BaseSchema):
     has_prev: bool = Field(description="是否有上一页")
 
 
-class PaginationResponse(BaseSchema, Generic[T]):
+class PaginationResponse[T](BaseSchema):
     """分页响应模型"""
 
     success: bool = Field(default=True, description="请求是否成功")
@@ -127,7 +127,7 @@ class BaseResponseSchema(BaseSchema):
     is_deleted: bool = Field(description="是否已删除")
 
 
-class BatchOperationRequest(BaseSchema, Generic[T]):
+class BatchOperationRequest[T](BaseSchema):
     """批量操作请求"""
 
     items: list[T] = Field(min_length=1, max_length=100, description="操作项目列表")

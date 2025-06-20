@@ -12,7 +12,7 @@ from typing import Any
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
+from pydantic import ValidationError as PydanticValidationError
 from starlette.responses import Response
 from tortoise.exceptions import DoesNotExist, IntegrityError
 
@@ -95,6 +95,67 @@ class ForbiddenException(APIException):
         )
 
 
+# 服务层业务异常类
+class BusinessError(APIException):
+    """业务逻辑错误异常"""
+
+    def __init__(
+        self,
+        message: str = "业务逻辑错误",
+        detail: str | dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message=message,
+            detail=detail,
+        )
+
+
+class ValidationError(APIException):
+    """数据验证错误异常"""
+
+    def __init__(
+        self,
+        message: str = "数据验证失败",
+        detail: str | dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            message=message,
+            detail=detail,
+        )
+
+
+class DuplicateError(APIException):
+    """数据重复异常"""
+
+    def __init__(
+        self,
+        message: str = "数据重复",
+        detail: str | dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            message=message,
+            detail=detail,
+        )
+
+
+class NotFoundError(APIException):
+    """资源不存在异常"""
+
+    def __init__(
+        self,
+        message: str = "资源不存在",
+        detail: str | dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            message=message,
+            detail=detail,
+        )
+
+
 class ConflictException(APIException):
     """资源冲突异常"""
 
@@ -131,7 +192,9 @@ async def api_exception_handler(request: Request, exc: APIException) -> Response
     )
 
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError | ValidationError) -> Response:
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError | PydanticValidationError
+) -> Response:
     """验证异常处理器
 
     Args:
@@ -238,7 +301,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
     """
     app.add_exception_handler(APIException, api_exception_handler)  # type: ignore
     app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
-    app.add_exception_handler(ValidationError, validation_exception_handler)  # type: ignore
+    app.add_exception_handler(PydanticValidationError, validation_exception_handler)  # type: ignore
     app.add_exception_handler(DoesNotExist, tortoise_not_found_exception_handler)  # type: ignore
     app.add_exception_handler(IntegrityError, tortoise_integrity_error_handler)  # type: ignore
     app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore

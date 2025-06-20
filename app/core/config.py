@@ -174,6 +174,24 @@ class Settings(BaseSettings):
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO")
 
+    # 操作日志配置
+    DEFAULT_OPERATOR_ID: str = Field(default="system_auto")
+    DEFAULT_OPERATOR_TYPE: str = Field(default="system")
+    ENABLE_OPERATION_LOG: bool = Field(default=True)
+    OPERATION_LOG_RETENTION_DAYS: int = Field(default=90, ge=1, le=365)
+
+    @property
+    def DEFAULT_OPERATOR(self) -> str:
+        """获取默认操作者标识"""
+        if self.IS_DEVELOPMENT:
+            return f"dev:{self.DEFAULT_OPERATOR_ID}"
+        elif self.IS_TESTING:
+            return f"test:{self.DEFAULT_OPERATOR_ID}"
+        elif self.IS_PRODUCTION:
+            return f"prod:{self.DEFAULT_OPERATOR_ID}"
+        else:
+            return f"{self.DEFAULT_OPERATOR_TYPE}:{self.DEFAULT_OPERATOR_ID}"
+
     # 限流配置
     RATE_LIMIT_ENABLED: bool = Field(default=False)
     RATE_LIMIT_WINDOW: int = Field(default=60)  # 窗口时间
