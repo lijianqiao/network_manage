@@ -45,21 +45,21 @@
 .venv\Scripts\activate
 
 # 启动开发服务器
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8010
 ```
 
 ## 访问API文档
 
 启动应用后，可以通过以下URL访问API文档：
 
-- Swagger UI: http://localhost:8000/api/docs
-- ReDoc: http://localhost:8000/api/redoc
-- OpenAPI JSON: http://localhost:8000/api/openapi.json
+- Swagger UI: http://localhost:8010/api/docs
+- ReDoc: http://localhost:8010/api/redoc
+- OpenAPI JSON: http://localhost:8010/api/openapi.json
 
 ## 健康检查
 
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8010/health
 ```
 
 ## 技术栈

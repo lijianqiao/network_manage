@@ -78,7 +78,7 @@ ENVIRONMENT=development
 
 # 服务器配置
 HOST=127.0.0.1
-PORT=8000
+PORT=8010
 
 # 安全配置
 SECRET_KEY=your-secret-key-here
@@ -109,12 +109,12 @@ BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:8080
 uv run python run.py
 
 # 或者直接运行 FastAPI 应用
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
 ```
 
 访问应用：
-- API 文档：http://127.0.0.1:8000/api/docs
-- ReDoc 文档：http://127.0.0.1:8000/api/redoc
+- API 文档：http://127.0.0.1:8010/api/docs
+- ReDoc 文档：http://127.0.0.1:8010/api/redoc
 
 ## 核心组件说明
 
@@ -207,7 +207,7 @@ class User(Model):
 uv sync --no-dev
 
 # 运行生产服务
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8010
 ```
 
 ### Docker 部署（可选）
@@ -229,10 +229,10 @@ COPY . .
 RUN uv sync --no-dev
 
 # 暴露端口
-EXPOSE 8000
+EXPOSE 8010
 
 # 启动应用
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8010"]
 ```
 
 ## 注意事项
