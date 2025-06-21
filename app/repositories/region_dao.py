@@ -112,7 +112,7 @@ class RegionDAO(BaseDAO[Region]):
 
         return await (
             self.model.all()
-            .annotate(device_count=Count("devices"), device_group_count=Count("device_groups"))
+            .annotate(device_count=Count("devices"))
             .order_by("name")
             .values(
                 "id",
@@ -121,7 +121,6 @@ class RegionDAO(BaseDAO[Region]):
                 "default_cli_username",
                 "description",
                 "device_count",
-                "device_group_count",
             )
         )
 

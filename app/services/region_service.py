@@ -138,7 +138,7 @@ class RegionService(
         Returns:
             预加载字段列表
         """
-        return ["devices", "device_groups"]
+        return ["devices"]
 
     async def get_region_stats(self, id: UUID) -> RegionStatsResponse:
         """获取区域统计信息
