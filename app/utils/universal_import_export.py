@@ -417,8 +417,8 @@ class UniversalImportExport[T: Model]:
             # 获取导出字段
             export_fields = [meta for meta in self._field_metadata.values() if not meta.import_only]
 
-            # 创建空的数据框
-            columns = {meta.display_name: [] for meta in export_fields}
+            # 创建空的数据框，使用英文字段名
+            columns = {meta.name: [] for meta in export_fields}
             df = pl.DataFrame(columns)
 
             # 转换为Excel
