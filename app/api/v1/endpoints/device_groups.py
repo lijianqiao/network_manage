@@ -66,100 +66,6 @@ async def create_device_group(
 
 
 @router.get(
-    "/{device_group_id}",
-    response_model=DeviceGroupListResponse,
-    summary="获取设备组详情",
-)
-async def get_device_group(
-    device_group_id: UUID,
-    service: DeviceGroupService = Depends(get_device_group_service),
-) -> DeviceGroupListResponse:
-    """获取设备组详情"""
-    try:
-        device_group = await service.get_by_id(device_group_id)
-        return device_group
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"设备组不存在: {e.message}",
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取设备组失败: {str(e)}",
-        ) from e
-
-
-@router.put(
-    "/{device_group_id}",
-    response_model=DeviceGroupListResponse,
-    summary="更新设备组",
-)
-async def update_device_group(
-    device_group_id: UUID,
-    device_group_data: DeviceGroupUpdateRequest,
-    service: DeviceGroupService = Depends(get_device_group_service),
-) -> DeviceGroupListResponse:
-    """更新设备组"""
-    try:
-        device_group = await service.update(device_group_id, device_group_data)
-        return device_group
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"设备组不存在: {e.message}",
-        ) from e
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"数据验证失败: {e.message}",
-        ) from e
-    except BadRequestException as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"业务逻辑错误: {e.message}",
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新设备组失败: {str(e)}",
-        ) from e
-
-
-@router.delete(
-    "/{device_group_id}",
-    response_model=SuccessResponse,
-    summary="删除设备组",
-    description="删除指定设备组",
-)
-async def delete_device_group(
-    device_group_id: UUID,
-    soft_delete: bool = Query(True, description="是否软删除"),
-    service: DeviceGroupService = Depends(get_device_group_service),
-) -> SuccessResponse:
-    """删除设备组"""
-    try:
-        result = await service.delete(device_group_id, soft_delete=soft_delete)
-        logger.info(f"成功删除设备组: {device_group_id}")
-        return result
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"设备组不存在: {e.message}",
-        ) from e
-    except BadRequestException as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"业务逻辑错误: {e.message}",
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"删除设备组失败: {str(e)}",
-        ) from e
-
-
-@router.get(
     "/",
     response_model=DeviceGroupPaginationResponse,
     summary="分页查询设备组",
@@ -306,4 +212,98 @@ async def get_device_group_fields():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取字段信息失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/{device_group_id}",
+    response_model=DeviceGroupListResponse,
+    summary="获取设备组详情",
+)
+async def get_device_group(
+    device_group_id: UUID,
+    service: DeviceGroupService = Depends(get_device_group_service),
+) -> DeviceGroupListResponse:
+    """获取设备组详情"""
+    try:
+        device_group = await service.get_by_id(device_group_id)
+        return device_group
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"设备组不存在: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取设备组失败: {str(e)}",
+        ) from e
+
+
+@router.put(
+    "/{device_group_id}",
+    response_model=DeviceGroupListResponse,
+    summary="更新设备组",
+)
+async def update_device_group(
+    device_group_id: UUID,
+    device_group_data: DeviceGroupUpdateRequest,
+    service: DeviceGroupService = Depends(get_device_group_service),
+) -> DeviceGroupListResponse:
+    """更新设备组"""
+    try:
+        device_group = await service.update(device_group_id, device_group_data)
+        return device_group
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"设备组不存在: {e.message}",
+        ) from e
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"数据验证失败: {e.message}",
+        ) from e
+    except BadRequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"业务逻辑错误: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"更新设备组失败: {str(e)}",
+        ) from e
+
+
+@router.delete(
+    "/{device_group_id}",
+    response_model=SuccessResponse,
+    summary="删除设备组",
+    description="删除指定设备组",
+)
+async def delete_device_group(
+    device_group_id: UUID,
+    soft_delete: bool = Query(True, description="是否软删除"),
+    service: DeviceGroupService = Depends(get_device_group_service),
+) -> SuccessResponse:
+    """删除设备组"""
+    try:
+        result = await service.delete(device_group_id, soft_delete=soft_delete)
+        logger.info(f"成功删除设备组: {device_group_id}")
+        return result
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"设备组不存在: {e.message}",
+        ) from e
+    except BadRequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"业务逻辑错误: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"删除设备组失败: {str(e)}",
         ) from e

@@ -86,6 +86,89 @@ async def list_brands(
 
 
 @router.get(
+    "/template",
+    summary="下载品牌导入模板",
+    description="下载品牌数据导入模板文件",
+)
+async def download_brand_template():
+    """下载品牌导入模板 - 使用通用工具"""
+    try:
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Brand)
+
+        # 生成模板
+        excel_data = await tool.export_template()
+
+        # 生成文件名
+        filename = tool.get_filename("template")
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        logger.error(f"下载品牌模板失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"下载模板失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/export",
+    summary="导出品牌数据",
+    description="导出品牌数据到Excel文件",
+)
+async def export_brands():
+    """导出品牌数据 - 使用通用工具"""
+    try:
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Brand)
+
+        # 导出数据
+        excel_data = await tool.export_data()
+
+        # 生成文件名
+        filename = tool.get_filename("export")
+
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        logger.error(f"导出品牌数据失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"导出失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/fields",
+    summary="获取品牌字段信息",
+    description="获取品牌模型的字段信息，用于前端动态生成表单",
+)
+async def get_brand_fields():
+    """获取品牌字段信息 - 使用通用工具"""
+    try:
+        # 获取通用导入导出工具
+        tool = await get_import_export_tool(Brand)
+
+        # 获取字段信息
+        fields = tool.get_field_info()
+
+        return SuccessResponse(data=fields, message="获取字段信息成功")
+    except Exception as e:
+        logger.error(f"获取品牌字段信息失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取字段信息失败: {str(e)}",
+        ) from e
+
+
+@router.get(
     "/{brand_id}",
     response_model=BrandListResponse,
     summary="获取品牌详情",
@@ -155,58 +238,6 @@ async def delete_brand(
         ) from e
 
 
-@router.get(
-    "/{brand_id}/stats",
-    response_model=BrandStatsResponse,
-    summary="获取品牌统计",
-    description="获取品牌下设备和型号统计信息",
-)
-async def get_brand_stats(
-    brand_id: UUID,
-    brand_service: BrandService = Depends(get_brand_service),
-) -> BrandStatsResponse:
-    """获取品牌统计"""
-    try:
-        stats = await brand_service.get_brand_stats(brand_id)
-        return stats
-    except Exception as e:
-        logger.error(f"获取品牌统计失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取品牌统计失败: {str(e)}",
-        ) from e
-
-
-@router.get(
-    "/template",
-    summary="下载品牌导入模板",
-    description="下载品牌数据导入模板文件",
-)
-async def download_brand_template():
-    """下载品牌导入模板 - 使用通用工具"""
-    try:
-        # 获取通用导入导出工具
-        tool = await get_import_export_tool(Brand)
-
-        # 生成模板
-        excel_data = await tool.export_template()
-
-        # 生成文件名
-        filename = tool.get_filename("template")
-
-        return StreamingResponse(
-            io.BytesIO(excel_data),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
-        )
-    except Exception as e:
-        logger.error(f"下载品牌模板失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"下载模板失败: {str(e)}",
-        ) from e
-
-
 @router.post(
     "/import",
     summary="导入品牌数据",
@@ -238,54 +269,71 @@ async def import_brands(
         ) from e
 
 
+# @router.put(
+#     "/{brand_id}",
+#     response_model=BrandListResponse,
+#     summary="更新品牌",
+#     description="更新品牌信息",
+# )
+# async def update_brand(
+#     brand_id: UUID,
+#     brand_data: BrandUpdateRequest,
+#     brand_service: BrandService = Depends(get_brand_service),
+# ) -> BrandListResponse:
+#     """更新品牌"""
+#     try:
+#         brand = await brand_service.update(brand_id, brand_data)
+#         logger.info(f"成功更新品牌: {brand_id}")
+#         return brand
+#     except Exception as e:
+#         logger.error(f"更新品牌失败: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"更新品牌失败: {str(e)}",
+#         ) from e
+
+
+# @router.delete(
+#     "/{brand_id}",
+#     response_model=SuccessResponse,
+#     summary="删除品牌",
+#     description="删除指定品牌",
+# )
+# async def delete_brand(
+#     brand_id: UUID,
+#     soft_delete: bool = Query(True, description="是否软删除"),
+#     brand_service: BrandService = Depends(get_brand_service),
+# ) -> SuccessResponse:
+#     """删除品牌"""
+#     try:
+#         result = await brand_service.delete(brand_id, soft_delete=soft_delete)
+#         logger.info(f"成功删除品牌: {brand_id}")
+#         return result
+#     except Exception as e:
+#         logger.error(f"删除品牌失败: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"删除品牌失败: {str(e)}",
+#         ) from e
+
+
 @router.get(
-    "/export",
-    summary="导出品牌数据",
-    description="导出品牌数据到Excel文件",
+    "/{brand_id}/stats",
+    response_model=BrandStatsResponse,
+    summary="获取品牌统计",
+    description="获取品牌下设备和型号统计信息",
 )
-async def export_brands():
-    """导出品牌数据 - 使用通用工具"""
+async def get_brand_stats(
+    brand_id: UUID,
+    brand_service: BrandService = Depends(get_brand_service),
+) -> BrandStatsResponse:
+    """获取品牌统计"""
     try:
-        # 获取通用导入导出工具
-        tool = await get_import_export_tool(Brand)
-
-        # 导出数据
-        excel_data = await tool.export_data()
-
-        # 生成文件名
-        filename = tool.get_filename("export")
-
-        return StreamingResponse(
-            io.BytesIO(excel_data),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
-        )
+        stats = await brand_service.get_brand_stats(brand_id)
+        return stats
     except Exception as e:
-        logger.error(f"导出品牌数据失败: {e}")
+        logger.error(f"获取品牌统计失败: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"导出失败: {str(e)}",
-        ) from e
-
-
-@router.get(
-    "/fields",
-    summary="获取品牌字段信息",
-    description="获取品牌模型的字段信息，用于前端动态生成表单",
-)
-async def get_brand_fields():
-    """获取品牌字段信息 - 使用通用工具"""
-    try:
-        # 获取通用导入导出工具
-        tool = await get_import_export_tool(Brand)
-
-        # 获取字段信息
-        fields = tool.get_field_info()
-
-        return SuccessResponse(data=fields, message="获取字段信息成功")
-    except Exception as e:
-        logger.error(f"获取品牌字段信息失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取字段信息失败: {str(e)}",
+            detail=f"获取品牌统计失败: {str(e)}",
         ) from e

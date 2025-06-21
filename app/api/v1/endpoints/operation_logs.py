@@ -60,31 +60,6 @@ async def create_operation_log(
 
 
 @router.get(
-    "/{log_id}",
-    response_model=OperationLogListResponse,
-    summary="获取操作日志详情",
-)
-async def get_operation_log(
-    log_id: UUID,
-    service: OperationLogService = Depends(get_operation_log_service),
-) -> OperationLogListResponse:
-    """获取操作日志详情"""
-    try:
-        log = await service.get_by_id(log_id)
-        return log
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"操作日志不存在: {e.message}",
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取操作日志失败: {str(e)}",
-        ) from e
-
-
-@router.get(
     "/",
     response_model=OperationLogPaginationResponse,
     summary="分页查询操作日志",
@@ -141,27 +116,6 @@ async def get_operation_logs_count(
 
 
 @router.get(
-    "/device/{device_id}",
-    response_model=OperationLogPaginationResponse,
-    summary="根据设备获取操作日志",
-)
-async def get_operation_logs_by_device(
-    device_id: UUID,
-    service: OperationLogService = Depends(get_operation_log_service),
-) -> OperationLogPaginationResponse:
-    """根据设备ID获取操作日志列表"""
-    try:
-        query_params = OperationLogQueryParams(page=1, page_size=1000, device_id=device_id)
-        result = await service.list_with_pagination(query_params)
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"查询操作日志失败: {str(e)}",
-        ) from e
-
-
-@router.get(
     "/stats/summary",
     response_model=dict[str, int],
     summary="获取操作日志统计摘要",
@@ -183,4 +137,51 @@ async def get_operation_logs_summary(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取操作日志统计失败: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/device/{device_id}",
+    response_model=OperationLogPaginationResponse,
+    summary="根据设备获取操作日志",
+)
+async def get_operation_logs_by_device(
+    device_id: UUID,
+    service: OperationLogService = Depends(get_operation_log_service),
+) -> OperationLogPaginationResponse:
+    """根据设备ID获取操作日志列表"""
+    try:
+        query_params = OperationLogQueryParams(page=1, page_size=1000, device_id=device_id)
+        result = await service.list_with_pagination(query_params)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"查询操作日志失败: {str(e)}",
+        ) from e
+
+
+# 动态路由放在最后，确保静态路由优先匹配
+@router.get(
+    "/{log_id}",
+    response_model=OperationLogListResponse,
+    summary="获取操作日志详情",
+)
+async def get_operation_log(
+    log_id: UUID,
+    service: OperationLogService = Depends(get_operation_log_service),
+) -> OperationLogListResponse:
+    """获取操作日志详情"""
+    try:
+        log = await service.get_by_id(log_id)
+        return log
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"操作日志不存在: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取操作日志失败: {str(e)}",
         ) from e

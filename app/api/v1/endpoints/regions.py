@@ -66,100 +66,6 @@ async def create_region(
 
 
 @router.get(
-    "/{region_id}",
-    response_model=RegionListResponse,
-    summary="获取区域详情",
-)
-async def get_region(
-    region_id: UUID,
-    service: RegionService = Depends(get_region_service),
-) -> RegionListResponse:
-    """获取区域详情"""
-    try:
-        region = await service.get_by_id(region_id)
-        return region
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"区域不存在: {e.message}",
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取区域失败: {str(e)}",
-        ) from e
-
-
-@router.put(
-    "/{region_id}",
-    response_model=RegionListResponse,
-    summary="更新区域",
-)
-async def update_region(
-    region_id: UUID,
-    region_data: RegionUpdateRequest,
-    service: RegionService = Depends(get_region_service),
-) -> RegionListResponse:
-    """更新区域"""
-    try:
-        region = await service.update(region_id, region_data)
-        return region
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"区域不存在: {e.message}",
-        ) from e
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"数据验证失败: {e.message}",
-        ) from e
-    except BadRequestException as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"业务逻辑错误: {e.message}",
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新区域失败: {str(e)}",
-        ) from e
-
-
-@router.delete(
-    "/{region_id}",
-    response_model=SuccessResponse,
-    summary="删除区域",
-    description="删除指定区域",
-)
-async def delete_region(
-    region_id: UUID,
-    soft_delete: bool = Query(True, description="是否软删除"),
-    service: RegionService = Depends(get_region_service),
-) -> SuccessResponse:
-    """删除区域"""
-    try:
-        result = await service.delete(region_id, soft_delete=soft_delete)
-        logger.info(f"成功删除区域: {region_id}")
-        return result
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"区域不存在: {e.message}",
-        ) from e
-    except BadRequestException as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"业务逻辑错误: {e.message}",
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"删除区域失败: {str(e)}",
-        ) from e
-
-
-@router.get(
     "/",
     response_model=RegionPaginationResponse,
     summary="分页查询区域",
@@ -308,4 +214,99 @@ async def get_region_field_info():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取字段信息失败: {str(e)}",
+        ) from e
+
+
+# 动态路由放在最后，确保静态路由优先匹配
+@router.get(
+    "/{region_id}",
+    response_model=RegionListResponse,
+    summary="获取区域详情",
+)
+async def get_region(
+    region_id: UUID,
+    service: RegionService = Depends(get_region_service),
+) -> RegionListResponse:
+    """获取区域详情"""
+    try:
+        region = await service.get_by_id(region_id)
+        return region
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"区域不存在: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取区域失败: {str(e)}",
+        ) from e
+
+
+@router.put(
+    "/{region_id}",
+    response_model=RegionListResponse,
+    summary="更新区域",
+)
+async def update_region(
+    region_id: UUID,
+    region_data: RegionUpdateRequest,
+    service: RegionService = Depends(get_region_service),
+) -> RegionListResponse:
+    """更新区域"""
+    try:
+        region = await service.update(region_id, region_data)
+        return region
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"区域不存在: {e.message}",
+        ) from e
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"数据验证失败: {e.message}",
+        ) from e
+    except BadRequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"业务逻辑错误: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"更新区域失败: {str(e)}",
+        ) from e
+
+
+@router.delete(
+    "/{region_id}",
+    response_model=SuccessResponse,
+    summary="删除区域",
+    description="删除指定区域",
+)
+async def delete_region(
+    region_id: UUID,
+    soft_delete: bool = Query(True, description="是否软删除"),
+    service: RegionService = Depends(get_region_service),
+) -> SuccessResponse:
+    """删除区域"""
+    try:
+        result = await service.delete(region_id, soft_delete=soft_delete)
+        logger.info(f"成功删除区域: {region_id}")
+        return result
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"区域不存在: {e.message}",
+        ) from e
+    except BadRequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"业务逻辑错误: {e.message}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"删除区域失败: {str(e)}",
         ) from e
