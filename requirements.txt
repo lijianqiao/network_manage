@@ -21,3 +21,6 @@ openpyxl
 fastexcel
 xlsxwriter
 python-multipart
+
+# test
+aiohttp

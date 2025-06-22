@@ -94,7 +94,7 @@ class TemplateCommandCreateRequest(BaseCreateSchema):
     brand_id: UUID = Field(description="关联品牌ID")
     jinja_content: str = Field(min_length=1, description="Jinja2模板内容")
     ttp_template: str | None = Field(default=None, description="TTP解析模板")
-    expected_params: dict[str, Any] | None = Field(default=None, description="期望的参数列表")
+    expected_params: list[dict[str, Any]] | None = Field(default=None, description="期望的参数列表")
 
     @field_validator("jinja_content")
     @classmethod
@@ -111,7 +111,7 @@ class TemplateCommandUpdateRequest(BaseUpdateSchema):
 
     jinja_content: str | None = Field(default=None, min_length=1, description="Jinja2模板内容")
     ttp_template: str | None = Field(default=None, description="TTP解析模板")
-    expected_params: dict[str, Any] | None = Field(default=None, description="期望的参数列表")
+    expected_params: list[dict[str, Any]] | None = Field(default=None, description="期望的参数列表")
 
 
 class TemplateCommandResponse(BaseResponseSchema):
@@ -121,7 +121,7 @@ class TemplateCommandResponse(BaseResponseSchema):
     brand_id: UUID = Field(description="品牌ID")
     jinja_content: str = Field(description="Jinja2模板内容")
     ttp_template: str | None = Field(description="TTP解析模板")
-    expected_params: dict[str, Any] | None = Field(description="期望参数列表")
+    expected_params: list[dict[str, Any]] | None = Field(description="期望参数列表")
 
     # 关联信息
     config_template_name: str | None = Field(default=None, description="配置模板名称")
