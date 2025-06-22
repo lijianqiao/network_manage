@@ -64,7 +64,7 @@ app = create_app()
 
 
 # 增加跟路由 - 欢迎页面
-@app.get("/", summary="欢迎页面", description=settings.APP_NAME)
+@app.get("/", summary="欢迎页面", description=settings.APP_NAME, tags=["系统"])
 async def welcome() -> dict:
     """欢迎页面"""
     return {

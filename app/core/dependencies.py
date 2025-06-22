@@ -149,6 +149,14 @@ def get_operation_log_service() -> OperationLogService:
     return get_service_container().get_operation_log_service()
 
 
-# def get_import_export_service() -> ImportExportService:
-#     """获取导入导出服务依赖"""
-#     return get_service_container().get_import_export_service()
+# 基础用户认证依赖（暂时返回空用户，后续会集成真实的认证系统）
+async def get_current_user():
+    """获取当前用户（占位函数）"""
+
+    # 这里返回一个基本的用户对象，后续会替换为真实的JWT认证
+    class MockUser:
+        def __init__(self):
+            self.id = "system"
+            self.username = "system"
+
+    return MockUser()

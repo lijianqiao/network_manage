@@ -6,6 +6,8 @@
 @Docs: 配置模板数据访问层实现
 """
 
+from uuid import UUID
+
 from app.models.network_models import ConfigTemplate
 from app.repositories.base_dao import BaseDAO
 
@@ -53,7 +55,7 @@ class ConfigTemplateDAO(BaseDAO[ConfigTemplate]):
         """
         return await self.list_by_filters({"name": name_keyword}, order_by=["name"])
 
-    async def check_name_exists(self, name: str, exclude_id: int | None = None) -> bool:
+    async def check_name_exists(self, name: str, exclude_id: UUID | None = None) -> bool:
         """检查模板名称是否已存在
 
         Args:
