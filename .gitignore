@@ -30,3 +30,5 @@ logs/
 tests/
 # .cursor/
 prototype/
+# 数据库迁移文件
+migrations/
