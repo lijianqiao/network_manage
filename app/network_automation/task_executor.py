@@ -15,6 +15,7 @@ from nornir import InitNornir
 from nornir.core.inventory import Inventory
 from nornir.core.task import AggregatedResult
 
+from app.core.config import settings
 from app.network_automation.inventory_manager import DynamicInventoryManager
 from app.utils.logger import logger
 
@@ -49,6 +50,16 @@ class NetworkTaskExecutor:
             # 创建临时空的主机文件来满足SimpleInventory要求
             import os
             import tempfile
+            from datetime import datetime
+            from pathlib import Path
+
+            # 确保logs目录存在
+            log_dir = Path(settings.BASE_DIR) / "logs"
+            log_dir.mkdir(exist_ok=True)
+
+            # 生成日期格式的日志文件名
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            log_file = log_dir / f"nornir_{current_date}.log"
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
                 f.write("{}")  # 空的YAML文件
@@ -62,7 +73,13 @@ class NetworkTaskExecutor:
                             "host_file": hosts_file,
                             "group_file": hosts_file,
                         },
-                    }
+                    },
+                    logging={
+                        "enabled": True,
+                        "level": "INFO",
+                        "log_file": str(log_file),
+                        "to_console": False,
+                    },
                 )
                 nr.inventory = inventory
                 return nr

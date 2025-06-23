@@ -146,6 +146,7 @@ class DynamicInventoryManager:
         )
 
         if not devices:
+            logger.error(f"区域 {region_id} 中没有设备")
             raise ValueError(f"区域 {region_id} 中没有设备")
 
         device_ids = [device.id for device in devices]
@@ -171,6 +172,7 @@ class DynamicInventoryManager:
         )
 
         if not devices:
+            logger.error(f"设备分组 {group_id} 中没有设备")
             raise ValueError(f"设备分组 {group_id} 中没有设备")
 
         device_ids = [device.id for device in devices]
