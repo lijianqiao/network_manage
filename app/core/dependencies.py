@@ -18,6 +18,7 @@ from app.services.brand_service import BrandService
 from app.services.device_group_service import DeviceGroupService
 from app.services.device_model_service import DeviceModelService
 from app.services.device_service import DeviceService
+from app.services.network_automation_service import NetworkAutomationService
 
 # from app.services.import_export_service import ImportExportService
 from app.services.operation_log_service import OperationLogService
@@ -104,6 +105,12 @@ class ServiceContainer:
             self._service_instances["operation_log_service"] = OperationLogService(self.get_operation_log_dao())
         return self._service_instances["operation_log_service"]
 
+    def get_network_automation_service(self) -> NetworkAutomationService:
+        """获取网络自动化服务实例"""
+        if "network_automation_service" not in self._service_instances:
+            self._service_instances["network_automation_service"] = NetworkAutomationService()
+        return self._service_instances["network_automation_service"]
+
     # def get_import_export_service(self) -> ImportExportService:
     #     """获取导入导出服务实例"""
     #     if "import_export_service" not in self._service_instances:
@@ -147,6 +154,11 @@ def get_device_service() -> DeviceService:
 def get_operation_log_service() -> OperationLogService:
     """获取操作日志服务依赖"""
     return get_service_container().get_operation_log_service()
+
+
+def get_network_automation_service() -> NetworkAutomationService:
+    """获取网络自动化服务依赖"""
+    return get_service_container().get_network_automation_service()
 
 
 # 基础用户认证依赖（暂时返回空用户，后续会集成真实的认证系统）

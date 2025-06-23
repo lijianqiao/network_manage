@@ -22,5 +22,11 @@ fastexcel
 xlsxwriter
 python-multipart
 
+# network automation
+nornir
+scrapli[asyncssh]
+scrapli[paramiko]
+jinja2
+
 # test
 aiohttp

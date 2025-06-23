@@ -14,6 +14,7 @@ from app.api.v1.endpoints.device_connection_status import router as connection_s
 from app.api.v1.endpoints.device_groups import router as device_groups_router
 from app.api.v1.endpoints.device_models import router as device_models_router
 from app.api.v1.endpoints.devices import router as devices_router
+from app.api.v1.endpoints.network_automation import router as automation_router
 from app.api.v1.endpoints.operation_logs import router as operation_logs_router
 from app.api.v1.endpoints.regions import router as regions_router
 from app.api.v1.endpoints.template_commands import router as template_commands_router
@@ -37,3 +38,6 @@ api_router.include_router(template_commands_router)
 
 # 凭据管理与连接状态路由
 api_router.include_router(connection_status_router)
+
+# 网络自动化路由
+api_router.include_router(automation_router)
