@@ -178,8 +178,8 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
             }  # 如果启用解析且有输出内容
             if enable_parsing and result.get("output"):
                 try:
-                    # 导入TTP解析器
-                    from app.network_automation.parsers.ttp_parser import TTPParser
+                    # 导入TextFSM解析器
+                    from app.network_automation.parsers.textfsm_parser import TextFSMParser
 
                     # 获取设备品牌信息
                     device_brand = host_data.get("brand") or host_data.get("brand_name")
@@ -190,8 +190,8 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
                         command_result["parsing_enabled"] = False
                         command_result["parsing_error"] = "设备品牌信息缺失"
                     else:
-                        # 创建解析器实例
-                        parser = TTPParser()
+                        # 创建TextFSM解析器实例
+                        parser = TextFSMParser()
 
                         # 执行结构化解析
                         parse_result = parser.parse_command_output(
@@ -205,11 +205,11 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
                         command_result["parsing_enabled"] = True
 
                         logger.info(
-                            f"命令解析完成: {host.hostname} - {command} (解析成功: {parse_result.get('success', False)})"
+                            f"TextFSM解析完成: {host.hostname} - {command} (解析成功: {parse_result.get('success', False)})"
                         )
 
                 except Exception as parse_error:
-                    logger.warning(f"结构化解析失败: {parse_error}")
+                    logger.warning(f"TextFSM结构化解析失败: {parse_error}")
                     command_result["parsing_enabled"] = False
                     command_result["parsing_error"] = str(parse_error)
             else:

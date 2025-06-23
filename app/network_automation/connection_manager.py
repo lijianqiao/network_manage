@@ -57,25 +57,21 @@ class ScrapliConnectionManager:
                 "timeout_transport": host_data.get("timeout_transport", 60),
                 "port": host_data.get("port", 22),
                 "transport": "asyncssh",  # 明确使用asyncssh transport，支持Windows
-            }
-
-            # 根据平台选择驱动
+            }  # 根据平台选择驱动
             platform = host_data.get("platform", "").lower()
-            if platform in ["cisco_ios", "ios"]:
+            if platform in ["cisco_ios", "ios", "cisco"]:
                 connection_params["platform"] = "cisco_iosxe"
             elif platform in ["cisco_nxos", "nxos"]:
                 connection_params["platform"] = "cisco_nxos"
             elif platform in ["cisco_iosxr", "iosxr"]:
                 connection_params["platform"] = "cisco_iosxr"
-            elif platform in ["arista_eos", "eos"]:
-                connection_params["platform"] = "arista_eos"
-            elif platform in ["juniper_junos", "junos"]:
-                connection_params["platform"] = "juniper_junos"
-            elif platform in ["huawei_vrp", "vrp"]:
+            elif platform in ["huawei_vrp", "vrp", "huawei"]:
                 connection_params["platform"] = "huawei_vrp"
+            elif platform in ["h3c_comware", "comware", "h3c"]:
+                connection_params["platform"] = "hp_comware"  # H3C使用HP Comware驱动
             else:
-                # 默认使用通用Linux驱动
-                connection_params["platform"] = "hp_comware"  # 这里可以根据实际情况调整
+                # 默认使用通用驱动
+                connection_params["platform"] = "hp_comware"
 
             # 如果有enable密码，添加到连接参数
             if host_data.get("enable_password"):
@@ -308,9 +304,7 @@ class ScrapliConnectionManager:
                     "platform": getattr(conn, "platform", "unknown"),
                     "version_output": version_response.result,
                     "status": "success",
-                }
-
-                # 尝试获取更多信息（根据平台）
+                }  # 尝试获取更多信息（根据平台）
                 try:
                     platform = host_data.get("platform", "").lower()
                     if "cisco" in platform:
@@ -319,8 +313,12 @@ class ScrapliConnectionManager:
                         facts["inventory"] = inventory_response.result
                     elif "huawei" in platform:
                         # 华为设备
-                        system_response = await conn.send_command("display version")
+                        system_response = await conn.send_command("display device")
                         facts["system_info"] = system_response.result
+                    elif "h3c" in platform or "comware" in platform:
+                        # H3C设备
+                        device_response = await conn.send_command("display device")
+                        facts["device_info"] = device_response.result
                 except Exception as extra_info_error:
                     # 如果获取额外信息失败，忽略错误
                     logger.debug(f"获取额外设备信息失败 {host_data['hostname']}: {extra_info_error}")
@@ -348,15 +346,14 @@ class ScrapliConnectionManager:
         start_time = asyncio.get_event_loop().time()
 
         try:
-            async with self.get_connection(host_data) as conn:
-                # 根据平台选择配置命令
+            async with self.get_connection(host_data) as conn:  # 根据平台选择配置命令
                 platform = getattr(conn, "platform", "").lower()
                 if "cisco" in platform:
                     config_command = "show running-config"
                 elif "huawei" in platform:
                     config_command = "display current-configuration"
-                elif "juniper" in platform:
-                    config_command = "show configuration"
+                elif "h3c" in platform or "comware" in platform:
+                    config_command = "display current-configuration"
                 else:
                     config_command = "show running-config"  # 默认
 

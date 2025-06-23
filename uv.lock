@@ -438,6 +438,15 @@ wheels = [
 ]
 
 [[package]]
+name = "future"
+version = "1.0.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/a7/b2/4140c69c6a66432916b26158687e821ba631a4c9273c474343badf84d3ba/future-1.0.0.tar.gz", hash = "sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05", size = 1228490, upload-time = "2024-02-21T11:52:38.461Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/da/71/ae30dadffc90b9006d77af76b393cb9dfbfc9629f339fc1574a1c52e6806/future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216", size = 491326, upload-time = "2024-02-21T11:52:35.956Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -673,15 +682,16 @@ dependencies = [
     { name = "jinja2" },
     { name = "loguru" },
     { name = "nornir" },
+    { name = "ntc-templates" },
     { name = "openpyxl" },
     { name = "polars" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
     { name = "redis", extra = ["hiredis"] },
     { name = "scrapli", extra = ["asyncssh", "community", "paramiko"] },
+    { name = "scrapli-community" },
+    { name = "textfsm" },
     { name = "tortoise-orm" },
-    { name = "ttp" },
-    { name = "ttp-templates" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "xlsxwriter" },
 ]
@@ -705,15 +715,16 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "nornir", specifier = ">=3.5.0" },
+    { name = "ntc-templates", specifier = ">=7.9.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "polars", specifier = ">=1.31.0" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "redis", extras = ["hiredis"], specifier = ">=6.2.0" },
     { name = "scrapli", extras = ["asyncssh", "community", "paramiko"], specifier = ">=2025.1.30" },
+    { name = "scrapli-community", specifier = ">=2025.1.30" },
+    { name = "textfsm", specifier = ">=1.1.3" },
     { name = "tortoise-orm", specifier = ">=0.25.1" },
-    { name = "ttp", specifier = ">=0.9.5" },
-    { name = "ttp-templates", specifier = ">=0.3.7" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.3" },
     { name = "xlsxwriter", specifier = ">=3.2.5" },
 ]
@@ -736,6 +747,18 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/1a/e9/deda49010c698dc97f66fa93828686546c08127866b6c00a94078d4ef547/nornir-3.5.0.tar.gz", hash = "sha256:f0d212999a37bc5962534738c47099b3e11a45d8f7dc8bc855530f7fb73d2f64", size = 28730, upload-time = "2025-01-08T18:08:10.572Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/5b/5b/2555603edbd02226c037822234830f6de837da53e1c0cd6018fc944c1d50/nornir-3.5.0-py3-none-any.whl", hash = "sha256:7e273d7b2aa519fa84b4fbbeb74ac5df3595d80105009049f0157c72a345b0b2", size = 30592, upload-time = "2025-01-08T18:08:04.668Z" },
+]
+
+[[package]]
+name = "ntc-templates"
+version = "7.9.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "textfsm" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/ad/93/9cb55fac6752b9e9c18412521f95aef43adb7651719dfead1e000a5e3956/ntc_templates-7.9.0.tar.gz", hash = "sha256:df4b4520c3dd41b33ad0746ea7742c63b13eb2860579c7648c348167af5432e2", size = 305173, upload-time = "2025-05-21T20:18:56.018Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/5e/d8/af9941ff4444b67cc6a59f1c7367d38444254781dae1f6bd57ed686d4dcd/ntc_templates-7.9.0-py3-none-any.whl", hash = "sha256:44ae2651719592bb70e98886f363b15bab12892b37f8338f0a2255aa5c7b6ee3", size = 609789, upload-time = "2025-05-21T20:18:54.741Z" },
 ]
 
 [[package]]
@@ -1160,6 +1183,15 @@ wheels = [
 ]
 
 [[package]]
+name = "six"
+version = "1.17.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
 name = "sniffio"
 version = "1.3.1"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -1181,6 +1213,19 @@ wheels = [
 ]
 
 [[package]]
+name = "textfsm"
+version = "1.1.3"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "future" },
+    { name = "six" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/b8/bf/c9147d29c5a3ff4c1c876e16ea02f6d4e4f35ba1bcbb2ac80a254924f0aa/textfsm-1.1.3.tar.gz", hash = "sha256:577ef278a9237f5341ae9b682947cefa4a2c1b24dbe486f94f2c95addc6504b5", size = 55454, upload-time = "2022-07-06T05:39:14.372Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/f8/f2/235703136dc9f25d1498c0f0b49ed99a4d7f98c361f322a5da586eb1ee06/textfsm-1.1.3-py2.py3-none-any.whl", hash = "sha256:dcbeebc6a6137bed561c71a56344d752e6dbc04ae5ea309252cb70fb97ccc9cd", size = 44664, upload-time = "2022-07-13T07:49:47.744Z" },
+]
+
+[[package]]
 name = "tortoise-orm"
 version = "0.25.1"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -1193,27 +1238,6 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/d7/9b/de966810021fa773fead258efd8deea2bb73bb12479e27f288bd8ceb8763/tortoise_orm-0.25.1.tar.gz", hash = "sha256:4d5bfd13d5750935ffe636a6b25597c5c8f51c47e5b72d7509d712eda1a239fe", size = 128341, upload-time = "2025-06-05T10:43:31.058Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/70/55/2bda7f4445f4c07b734385b46d1647a388d05160cf5b8714a713e8709378/tortoise_orm-0.25.1-py3-none-any.whl", hash = "sha256:df0ef7e06eb0650a7e5074399a51ee6e532043308c612db2cac3882486a3fd9f", size = 167723, upload-time = "2025-06-05T10:43:29.309Z" },
-]
-
-[[package]]
-name = "ttp"
-version = "0.9.5"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/6e/4f/b95e48d3b653e1b1494a3a5b15614db5a340826282c5389e38cb2248da39/ttp-0.9.5.tar.gz", hash = "sha256:234414f4d3039d2d1cde09993f89f8db1b34d447f76c6a402555cefac2e59c4e" }
-wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/03/38/d475e7bde8d192ca5d64ccc0988f3d58f36211bd68c32b6c5883332a8abf/ttp-0.9.5-py2.py3-none-any.whl", hash = "sha256:2c9fcf560b3f696e9fdd3554dc8e4622cbb10cac1d4fca13a7cf608c4a7fd137" },
-]
-
-[[package]]
-name = "ttp-templates"
-version = "0.3.7"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
-dependencies = [
-    { name = "ttp" },
-]
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/4f/24/3980b51a98a061790d1a900b8b0f7a786d543436ac2e08c6aba2c2f43aff/ttp_templates-0.3.7.tar.gz", hash = "sha256:f9103041a3683a0cb3811609ad990f679beadfc9a92c3e3fa05d6037414ad2bf", size = 43233, upload-time = "2024-11-07T09:41:52.155Z" }
-wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/cb/8e/53b0d67a394ff742dbfda62543a1c48c0f32ea630acce6ccadeb09194344/ttp_templates-0.3.7-py3-none-any.whl", hash = "sha256:2328304fb4c957ee60db6f301143e8a4556b22a12b3e2f30511e8ef97fc78f7e", size = 76514, upload-time = "2024-11-07T09:41:50.359Z" },
 ]
 
 [[package]]

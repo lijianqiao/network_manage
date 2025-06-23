@@ -26,8 +26,10 @@ python-multipart
 nornir
 scrapli[asyncssh]
 scrapli[paramiko]
+scrapli-community
 jinja2
-ttp
+textfsm
+ntc-templates
 
 # test
 aiohttp
