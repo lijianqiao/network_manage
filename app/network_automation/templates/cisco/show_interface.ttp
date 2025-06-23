@@ -1,0 +1,21 @@
+<group name="interfaces*">
+{{ interface }} is {{ admin_status }}, line protocol is {{ line_status }}
+  Hardware is {{ hardware_type }}{{ ignore }}
+  MTU {{ mtu }} bytes, BW {{ bandwidth }} Kbit/sec, DLY {{ delay }} usec,
+     reliability {{ reliability }}/255, txload {{ tx_load }}/255, rxload {{ rx_load }}/255
+  Encapsulation {{ encapsulation }}, loopback not set
+  Keepalive set ({{ keepalive }} sec)
+  {{ ignore }}
+  Last input {{ last_input }}, output {{ last_output }}, output hang {{ output_hang }}
+  Last clearing of "show interface" counters {{ counters_cleared }}
+  Input queue: {{ input_queue_size }}/{{ input_queue_max }} (size/max/drops/flushes); Total output drops: {{ output_drops }}
+  Queueing strategy: {{ queueing_strategy }}
+  {{ ignore }}
+     {{ rx_packets }} packets input, {{ rx_bytes }} bytes, {{ rx_no_buffer }} no buffer
+     Received {{ rx_broadcasts }} broadcasts ({{ rx_multicasts }} multicasts)
+     {{ rx_runts }} runts, {{ rx_giants }} giants, {{ rx_throttles }} throttles
+     {{ rx_input_errors }} input errors, {{ rx_crc }} CRC, {{ rx_frame }} frame, {{ rx_overrun }} overrun, {{ rx_ignored }} ignored
+     {{ tx_packets }} packets output, {{ tx_bytes }} bytes, {{ tx_underruns }} underruns
+     {{ tx_output_errors }} output errors, {{ tx_collisions }} collisions, {{ tx_interface_resets }} interface resets
+     {{ tx_output_buffer_failures }} output buffer failures, {{ tx_output_buffers_swapped }} output buffers swapped out
+</group>

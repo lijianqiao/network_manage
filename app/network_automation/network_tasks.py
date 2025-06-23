@@ -131,12 +131,13 @@ def get_device_info_task(task: Task) -> Result:
         return Result(host=task.host, failed=True, exception=e)
 
 
-def execute_command_task(task: Task, command: str) -> Result:
-    """执行单条命令任务
+def execute_command_task(task: Task, command: str, enable_parsing: bool = True) -> Result:
+    """执行单条命令任务（支持结构化解析）
 
     Args:
         task: Nornir任务对象
         command: 要执行的命令
+        enable_parsing: 是否启用结构化解析
 
     Returns:
         任务执行结果
@@ -159,13 +160,62 @@ def execute_command_task(task: Task, command: str) -> Result:
         if hasattr(host, "enable_password"):
             connection_data["enable_password"] = host.enable_password
 
-        logger.info(f"在设备 {host.hostname} 执行命令: {command}")  # 使用连接管理器执行命令
+        logger.info(f"在设备 {host.hostname} 执行命令: {command}")
+
+        # 使用连接管理器执行命令
         import asyncio
 
         result = asyncio.run(connection_manager.execute_command(connection_data, command))
 
         if result["status"] == "success":
-            return Result(host=task.host, result=result)
+            # 基础结果
+            command_result = {
+                "hostname": host.hostname,
+                "command": command,
+                "raw_output": result.get("output", ""),
+                "execution_time": result.get("execution_time", 0),
+                "status": "success",
+            }  # 如果启用解析且有输出内容
+            if enable_parsing and result.get("output"):
+                try:
+                    # 导入TTP解析器
+                    from app.network_automation.parsers.ttp_parser import TTPParser
+
+                    # 获取设备品牌信息
+                    device_brand = host_data.get("brand") or host_data.get("brand_name")
+
+                    if not device_brand:
+                        # 如果没有品牌信息，记录警告并跳过解析
+                        logger.warning(f"设备 {host.hostname} 缺少品牌信息，跳过结构化解析")
+                        command_result["parsing_enabled"] = False
+                        command_result["parsing_error"] = "设备品牌信息缺失"
+                    else:
+                        # 创建解析器实例
+                        parser = TTPParser()
+
+                        # 执行结构化解析
+                        parse_result = parser.parse_command_output(
+                            command_output=result["output"],
+                            command=command,
+                            brand=device_brand,  # 必需的品牌参数
+                        )
+
+                        # 添加解析结果
+                        command_result["parsed_data"] = parse_result
+                        command_result["parsing_enabled"] = True
+
+                        logger.info(
+                            f"命令解析完成: {host.hostname} - {command} (解析成功: {parse_result.get('success', False)})"
+                        )
+
+                except Exception as parse_error:
+                    logger.warning(f"结构化解析失败: {parse_error}")
+                    command_result["parsing_enabled"] = False
+                    command_result["parsing_error"] = str(parse_error)
+            else:
+                command_result["parsing_enabled"] = False
+
+            return Result(host=task.host, result=command_result)
         else:
             return Result(
                 host=task.host, failed=True, exception=Exception(result.get("error", f"命令执行失败: {command}"))

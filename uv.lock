@@ -680,6 +680,8 @@ dependencies = [
     { name = "redis", extra = ["hiredis"] },
     { name = "scrapli", extra = ["asyncssh", "community", "paramiko"] },
     { name = "tortoise-orm" },
+    { name = "ttp" },
+    { name = "ttp-templates" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "xlsxwriter" },
 ]
@@ -710,6 +712,8 @@ requires-dist = [
     { name = "redis", extras = ["hiredis"], specifier = ">=6.2.0" },
     { name = "scrapli", extras = ["asyncssh", "community", "paramiko"], specifier = ">=2025.1.30" },
     { name = "tortoise-orm", specifier = ">=0.25.1" },
+    { name = "ttp", specifier = ">=0.9.5" },
+    { name = "ttp-templates", specifier = ">=0.3.7" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.3" },
     { name = "xlsxwriter", specifier = ">=3.2.5" },
 ]
@@ -1189,6 +1193,27 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/d7/9b/de966810021fa773fead258efd8deea2bb73bb12479e27f288bd8ceb8763/tortoise_orm-0.25.1.tar.gz", hash = "sha256:4d5bfd13d5750935ffe636a6b25597c5c8f51c47e5b72d7509d712eda1a239fe", size = 128341, upload-time = "2025-06-05T10:43:31.058Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/70/55/2bda7f4445f4c07b734385b46d1647a388d05160cf5b8714a713e8709378/tortoise_orm-0.25.1-py3-none-any.whl", hash = "sha256:df0ef7e06eb0650a7e5074399a51ee6e532043308c612db2cac3882486a3fd9f", size = 167723, upload-time = "2025-06-05T10:43:29.309Z" },
+]
+
+[[package]]
+name = "ttp"
+version = "0.9.5"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/6e/4f/b95e48d3b653e1b1494a3a5b15614db5a340826282c5389e38cb2248da39/ttp-0.9.5.tar.gz", hash = "sha256:234414f4d3039d2d1cde09993f89f8db1b34d447f76c6a402555cefac2e59c4e" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/03/38/d475e7bde8d192ca5d64ccc0988f3d58f36211bd68c32b6c5883332a8abf/ttp-0.9.5-py2.py3-none-any.whl", hash = "sha256:2c9fcf560b3f696e9fdd3554dc8e4622cbb10cac1d4fca13a7cf608c4a7fd137" },
+]
+
+[[package]]
+name = "ttp-templates"
+version = "0.3.7"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "ttp" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/4f/24/3980b51a98a061790d1a900b8b0f7a786d543436ac2e08c6aba2c2f43aff/ttp_templates-0.3.7.tar.gz", hash = "sha256:f9103041a3683a0cb3811609ad990f679beadfc9a92c3e3fa05d6037414ad2bf", size = 43233, upload-time = "2024-11-07T09:41:52.155Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/cb/8e/53b0d67a394ff742dbfda62543a1c48c0f32ea630acce6ccadeb09194344/ttp_templates-0.3.7-py3-none-any.whl", hash = "sha256:2328304fb4c957ee60db6f301143e8a4556b22a12b3e2f30511e8ef97fc78f7e", size = 76514, upload-time = "2024-11-07T09:41:50.359Z" },
 ]
 
 [[package]]

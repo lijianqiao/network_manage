@@ -1,0 +1,17 @@
+<group name="route_interfaces">
+Brief information on interfaces in route mode:
+Link: ADM - administratively down; Stby - standby
+Protocol: (s) - spoofing
+Interface            Link Protocol Primary IP      Description
+{{ interface | _start_ }}              {{ link_status }}   {{ protocol }}    {{ primary_ip }}      {{ description | _end_ }}
+</group>
+
+<group name="bridge_interfaces">  
+Brief information on interfaces in bridge mode:
+Link: ADM - administratively down; Stby - standby
+Speed: (a) - auto
+Duplex: (a)/A - auto; H - half; F - full
+Type: A - access; T - trunk; H - hybrid
+Interface            Link Speed   Duplex Type PVID Description
+{{ interface | _start_ }}              {{ link_status }}   {{ speed }}   {{ duplex }}   {{ type }} {{ pvid }} {{ description | _end_ }}
+</group>

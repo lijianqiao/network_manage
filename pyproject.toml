@@ -28,6 +28,8 @@ dependencies = [
     "redis[hiredis]>=6.2.0",
     "scrapli[asyncssh,community,paramiko]>=2025.1.30",
     "tortoise-orm>=0.25.1",
+    "ttp>=0.9.5",
+    "ttp-templates>=0.3.7",
     "uvicorn[standard]>=0.34.3",
     "xlsxwriter>=3.2.5",
 ]

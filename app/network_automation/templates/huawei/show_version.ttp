@@ -1,0 +1,11 @@
+<group name="version_info">
+HUAWEI {{ model }} 
+Host Name               : {{ hostname }}
+System Software Version: VRP (R) software,Version {{ version }}
+                          {{ product_version }}
+System Hardware Version: {{ hardware_version }}
+                          BOARD Type:      {{ board_type }}
+                          Serial Number:   {{ serial_number }}
+System uptime                   : {{ uptime }}
+{{ ignore }}
+</group>

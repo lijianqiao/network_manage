@@ -27,6 +27,7 @@ nornir
 scrapli[asyncssh]
 scrapli[paramiko]
 jinja2
+ttp
 
 # test
 aiohttp
