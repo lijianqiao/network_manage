@@ -44,30 +44,36 @@ class NetworkTaskExecutor:
 
         Returns:
             配置好的Nornir实例
-        """
-        # 创建Nornir配置
-        nornir_config = {
-            "inventory": {
-                "plugin": "SimpleInventory",
-                "options": {
-                    "host_file": "",
-                    "group_file": "",
-                },
-            },
-            "runner": {
-                "plugin": "ThreadedRunner",
-                "options": {
-                    "num_workers": self.max_workers,
-                },
-            },
-        }
+        """  # 使用最简单可行的方法
+        try:
+            # 创建临时空的主机文件来满足SimpleInventory要求
+            import os
+            import tempfile
 
-        # 直接使用动态inventory初始化Nornir
-        # 注意：这里使用了一个简化的方法，直接设置inventory
-        nr = InitNornir(config=nornir_config)
-        nr.inventory = inventory
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("{}")  # 空的YAML文件
+                hosts_file = f.name
 
-        return nr
+            try:
+                nr = InitNornir(
+                    inventory={
+                        "plugin": "SimpleInventory",
+                        "options": {
+                            "host_file": hosts_file,
+                            "group_file": hosts_file,
+                        },
+                    }
+                )
+                nr.inventory = inventory
+                return nr
+            finally:
+                try:
+                    os.unlink(hosts_file)
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.error(f"Nornir初始化失败: {e}")
+            raise
 
     async def execute_task_on_devices(
         self,

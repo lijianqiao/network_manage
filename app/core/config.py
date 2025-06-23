@@ -104,6 +104,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7天
     ALGORITHM: str = Field(default="HS256")
 
+    # 加密配置
+    ENCRYPTION_KEY: SecretStr = Field(default=SecretStr(""))
+
     # 数据库配置
     DB_HOST: str = Field(default="localhost")
     DB_PORT: int = Field(default=5432)

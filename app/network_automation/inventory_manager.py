@@ -63,54 +63,59 @@ class DynamicInventoryManager:
         groups = {}
 
         for device in devices:
-            try:
-                # 解析设备凭据
+            try:  # 解析设备凭据
                 credentials = await self.credential_manager.resolve_device_credentials(
                     device=device, user_provided_credentials=runtime_credentials
                 )
 
-                # 创建主机对象
-                host_data = {
+                # 设备分组名称（按区域分组）
+                group_name = f"region_{device.region.name}"
+
+                # 创建主机对象 - 只包含Nornir Host支持的标准参数
+                host_params = {
                     "hostname": credentials["hostname"],
                     "username": credentials["username"],
                     "password": credentials["password"],
                     "platform": credentials["platform"],
                     "port": credentials.get("port", 22),
-                    "timeout_socket": 30,
-                    "timeout_transport": 60,
+                    "groups": [group_name],
                 }
 
                 # 添加enable密码（如果有）
                 if credentials.get("enable_password"):
-                    host_data["enable_password"] = credentials["enable_password"]
+                    host_params["enable_password"] = credentials["enable_password"]
 
-                # 添加设备自定义数据
-                host_data.update(
-                    {
-                        "device_id": device.id,
-                        "device_name": device.name,
-                        "device_type": device.device_type.value,
-                        "region_name": device.region.name,
-                        "brand_name": device.model.brand.name,
-                        "model_name": device.model.name,
-                        "group_name": device.device_group.name,
-                    }
-                )
+                # 准备自定义数据（通过data参数传递）
+                custom_data = {
+                    # 设备元数据
+                    "device_id": str(device.id),
+                    "device_name": device.name,
+                    "device_type": device.device_type.value,
+                    "region_name": device.region.name,
+                    "brand_name": device.model.brand.name,
+                    "model_name": device.model.name,
+                    "group_name": device.device_group.name,
+                    # Scrapli连接配置
+                    "timeout_socket": 30,
+                    "timeout_transport": 60,
+                    # 原始凭据信息（供任务使用）
+                    "credentials": credentials,
+                }
 
-                # 设备分组名称（按区域分组）
-                group_name = f"region_{device.region.name}"
-                host_data["groups"] = [group_name]
+                # 通过data参数传递自定义数据
+                host_params["data"] = custom_data
 
-                hosts[device.name] = Host(name=device.name, **host_data)
+                hosts[device.name] = Host(name=device.name, **host_params)
 
                 # 创建区域分组（如果还没有）
                 if group_name not in groups:
-                    group_data = {
-                        "region_id": device.region.id,
+                    # 准备分组自定义数据
+                    group_custom_data = {
+                        "region_id": str(device.region.id),
                         "snmp_community": device.region.snmp_community_string,
                         "default_username": device.region.default_cli_username,
                     }
-                    groups[group_name] = Group(name=group_name, **group_data)
+                    groups[group_name] = Group(name=group_name, data=group_custom_data)
 
                 logger.debug(f"已添加设备到清单: {device.name} ({device.ip_address})")
 
@@ -202,10 +207,9 @@ class DynamicInventoryManager:
             platform = getattr(host, "platform", "unknown")
             validation_result["platform_distribution"][platform] = (
                 validation_result["platform_distribution"].get(platform, 0) + 1
-            )
-
-            # 统计区域分布
-            region = getattr(host, "region_name", "unknown")
+            )  # 统计区域分布
+            host_data = getattr(host, "data", {})
+            region = host_data.get("region_name", "unknown")
             validation_result["region_distribution"][region] = (
                 validation_result["region_distribution"].get(region, 0) + 1
             )

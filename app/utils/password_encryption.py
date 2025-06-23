@@ -33,8 +33,12 @@ class PasswordEncryption:
             encryption_key = getattr(settings, "ENCRYPTION_KEY", None)
 
             if encryption_key:
-                # 使用配置的密钥
-                self._key = base64.urlsafe_b64decode(encryption_key.encode())
+                # 使用配置的密钥，处理SecretStr类型
+                if hasattr(encryption_key, "get_secret_value"):
+                    key_str = encryption_key.get_secret_value()
+                else:
+                    key_str = str(encryption_key)
+                self._key = base64.urlsafe_b64decode(key_str.encode())
             else:
                 # 生成新密钥（仅用于开发环境）
                 logger.warning("未找到加密密钥配置，生成临时密钥（生产环境请配置ENCRYPTION_KEY）")

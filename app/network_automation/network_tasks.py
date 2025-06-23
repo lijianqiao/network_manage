@@ -25,34 +25,35 @@ def ping_task(task: Task) -> Result:
     """
     try:
         host = task.host
+        host_data = getattr(host, "data", {})
 
         # 构建主机连接数据
-        host_data = {
+        connection_data = {
             "hostname": host.hostname,
             "username": host.username,
             "password": host.password,
             "platform": host.platform,
             "port": getattr(host, "port", 22),
-            "timeout_socket": getattr(host, "timeout_socket", 30),
-            "timeout_transport": getattr(host, "timeout_transport", 60),
+            "timeout_socket": host_data.get("timeout_socket", 30),
+            "timeout_transport": host_data.get("timeout_transport", 60),
         }
 
         # 添加enable密码（如果有）
         if hasattr(host, "enable_password"):
-            host_data["enable_password"] = host.enable_password
+            connection_data["enable_password"] = host.enable_password
 
         logger.info(f"执行Ping测试: {host.hostname}")
 
         # 使用连接管理器测试连通性
         import asyncio
 
-        result = asyncio.run(connection_manager.test_connectivity(host_data))
+        result = asyncio.run(connection_manager.test_connectivity(connection_data))
 
         # 添加设备详细信息
         result["details"] = {
-            "device_id": getattr(host, "device_id", None),
-            "device_name": getattr(host, "device_name", None),
-            "platform": getattr(host, "platform", None),
+            "device_id": host_data.get("device_id"),
+            "device_name": host_data.get("device_name"),
+            "platform": host.platform,
         }
 
         if result["status"] == "success":
@@ -76,37 +77,38 @@ def get_device_info_task(task: Task) -> Result:
     """
     try:
         host = task.host
+        host_data = getattr(host, "data", {})
 
         # 构建主机连接数据
-        host_data = {
+        connection_data = {
             "hostname": host.hostname,
             "username": host.username,
             "password": host.password,
             "platform": host.platform,
             "port": getattr(host, "port", 22),
-            "timeout_socket": getattr(host, "timeout_socket", 30),
-            "timeout_transport": getattr(host, "timeout_transport", 60),
+            "timeout_socket": host_data.get("timeout_socket", 30),
+            "timeout_transport": host_data.get("timeout_transport", 60),
         }
 
         if hasattr(host, "enable_password"):
-            host_data["enable_password"] = host.enable_password
+            connection_data["enable_password"] = host.enable_password
 
         # 使用连接管理器获取设备信息
         import asyncio
 
-        device_facts = asyncio.run(connection_manager.get_device_facts(host_data))
+        device_facts = asyncio.run(connection_manager.get_device_facts(connection_data))
 
         if device_facts["status"] == "success":
             # 合并Nornir主机信息和设备事实
             device_info = {
                 "hostname": host.hostname,
-                "device_name": getattr(host, "device_name", "Unknown"),
-                "device_type": getattr(host, "device_type", "Unknown"),
-                "platform": getattr(host, "platform", "Unknown"),
-                "region": getattr(host, "region_name", "Unknown"),
-                "brand": getattr(host, "brand_name", "Unknown"),
-                "model": getattr(host, "model_name", "Unknown"),
-                "group": getattr(host, "group_name", "Unknown"),
+                "device_name": host_data.get("device_name", "Unknown"),
+                "device_type": host_data.get("device_type", "Unknown"),
+                "platform": host.platform,
+                "region": host_data.get("region_name", "Unknown"),
+                "brand": host_data.get("brand_name", "Unknown"),
+                "model": host_data.get("model_name", "Unknown"),
+                "group": host_data.get("group_name", "Unknown"),
                 "version_info": device_facts.get("version_output", ""),
                 "platform_detected": device_facts.get("platform", "unknown"),
             }
@@ -141,27 +143,26 @@ def execute_command_task(task: Task, command: str) -> Result:
     """
     try:
         host = task.host
+        host_data = getattr(host, "data", {})
 
         # 构建主机连接数据
-        host_data = {
+        connection_data = {
             "hostname": host.hostname,
             "username": host.username,
             "password": host.password,
             "platform": host.platform,
             "port": getattr(host, "port", 22),
-            "timeout_socket": getattr(host, "timeout_socket", 30),
-            "timeout_transport": getattr(host, "timeout_transport", 60),
+            "timeout_socket": host_data.get("timeout_socket", 30),
+            "timeout_transport": host_data.get("timeout_transport", 60),
         }
 
         if hasattr(host, "enable_password"):
-            host_data["enable_password"] = host.enable_password
+            connection_data["enable_password"] = host.enable_password
 
-        logger.info(f"在设备 {host.hostname} 执行命令: {command}")
-
-        # 使用连接管理器执行命令
+        logger.info(f"在设备 {host.hostname} 执行命令: {command}")  # 使用连接管理器执行命令
         import asyncio
 
-        result = asyncio.run(connection_manager.execute_command(host_data, command))
+        result = asyncio.run(connection_manager.execute_command(connection_data, command))
 
         if result["status"] == "success":
             return Result(host=task.host, result=result)
@@ -186,27 +187,28 @@ def backup_config_task(task: Task) -> Result:
     """
     try:
         host = task.host
+        host_data = getattr(host, "data", {})
 
         # 构建主机连接数据
-        host_data = {
+        connection_data = {
             "hostname": host.hostname,
             "username": host.username,
             "password": host.password,
             "platform": host.platform,
             "port": getattr(host, "port", 22),
-            "timeout_socket": getattr(host, "timeout_socket", 30),
-            "timeout_transport": getattr(host, "timeout_transport", 60),
+            "timeout_socket": host_data.get("timeout_socket", 30),
+            "timeout_transport": host_data.get("timeout_transport", 60),
         }
 
         if hasattr(host, "enable_password"):
-            host_data["enable_password"] = host.enable_password
+            connection_data["enable_password"] = host.enable_password
 
         logger.info(f"备份设备配置: {host.hostname}")
 
         # 使用连接管理器备份配置
         import asyncio
 
-        result = asyncio.run(connection_manager.backup_configuration(host_data))
+        result = asyncio.run(connection_manager.backup_configuration(connection_data))
 
         if result["status"] == "success":
             return Result(host=task.host, result=result)
@@ -230,27 +232,26 @@ def deploy_config_task(task: Task, config_commands: list[str]) -> Result:
     """
     try:
         host = task.host
-
-        # 构建主机连接数据
-        host_data = {
+        host_data = getattr(host, "data", {})  # 构建主机连接数据
+        connection_data = {
             "hostname": host.hostname,
             "username": host.username,
             "password": host.password,
             "platform": host.platform,
             "port": getattr(host, "port", 22),
-            "timeout_socket": getattr(host, "timeout_socket", 30),
-            "timeout_transport": getattr(host, "timeout_transport", 60),
+            "timeout_socket": host_data.get("timeout_socket", 30),
+            "timeout_transport": host_data.get("timeout_transport", 60),
         }
 
         if hasattr(host, "enable_password"):
-            host_data["enable_password"] = host.enable_password
+            connection_data["enable_password"] = host.enable_password
 
         logger.info(f"在设备 {host.hostname} 部署配置，命令数量: {len(config_commands)}")
 
         # 使用连接管理器执行配置命令
         import asyncio
 
-        result = asyncio.run(connection_manager.execute_commands(host_data, config_commands))
+        result = asyncio.run(connection_manager.execute_commands(connection_data, config_commands))
 
         return Result(host=task.host, result=result)
 
@@ -274,14 +275,15 @@ def template_render_task(task: Task, template_content: str, template_vars: dict[
         from jinja2 import Template
 
         host = task.host
+        host_data = getattr(host, "data", {})
 
         # 添加主机信息到模板变量
         template_vars.update(
             {
                 "hostname": host.hostname,
-                "device_name": getattr(host, "device_name", ""),
-                "device_type": getattr(host, "device_type", ""),
-                "platform": getattr(host, "platform", ""),
+                "device_name": host_data.get("device_name", ""),
+                "device_type": host_data.get("device_type", ""),
+                "platform": host.platform,
             }
         )
 

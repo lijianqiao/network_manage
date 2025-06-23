@@ -269,54 +269,6 @@ async def import_brands(
         ) from e
 
 
-# @router.put(
-#     "/{brand_id}",
-#     response_model=BrandListResponse,
-#     summary="更新品牌",
-#     description="更新品牌信息",
-# )
-# async def update_brand(
-#     brand_id: UUID,
-#     brand_data: BrandUpdateRequest,
-#     brand_service: BrandService = Depends(get_brand_service),
-# ) -> BrandListResponse:
-#     """更新品牌"""
-#     try:
-#         brand = await brand_service.update(brand_id, brand_data)
-#         logger.info(f"成功更新品牌: {brand_id}")
-#         return brand
-#     except Exception as e:
-#         logger.error(f"更新品牌失败: {e}")
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail=f"更新品牌失败: {str(e)}",
-#         ) from e
-
-
-# @router.delete(
-#     "/{brand_id}",
-#     response_model=SuccessResponse,
-#     summary="删除品牌",
-#     description="删除指定品牌",
-# )
-# async def delete_brand(
-#     brand_id: UUID,
-#     soft_delete: bool = Query(True, description="是否软删除"),
-#     brand_service: BrandService = Depends(get_brand_service),
-# ) -> SuccessResponse:
-#     """删除品牌"""
-#     try:
-#         result = await brand_service.delete(brand_id, soft_delete=soft_delete)
-#         logger.info(f"成功删除品牌: {brand_id}")
-#         return result
-#     except Exception as e:
-#         logger.error(f"删除品牌失败: {e}")
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail=f"删除品牌失败: {str(e)}",
-#         ) from e
-
-
 @router.get(
     "/{brand_id}/stats",
     response_model=BrandStatsResponse,
