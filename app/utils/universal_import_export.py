@@ -78,8 +78,9 @@ class ModelIntrospector:
 
         # 获取模型的所有字段
         for field_name, field_obj in model_class._meta.fields_map.items():
-            if field_name in ["id", "created_at", "updated_at", "is_deleted"]:
-                continue  # 跳过基础字段
+            # 跳过基础字段和外键ID字段
+            if field_name in ["id", "created_at", "updated_at", "is_deleted"] or field_name.endswith("_id"):
+                continue
 
             metadata = await cls._analyze_field(field_name, field_obj, model_class)
             if metadata:
@@ -256,12 +257,15 @@ class FieldProcessor:
     """字段处理器 - 处理不同类型字段的转换和验证"""
 
     @classmethod
-    async def process_import_value(cls, value: Any, metadata: FieldMetadata) -> Any:
+    async def process_import_value(
+        cls, value: Any, metadata: FieldMetadata, row_data: dict[str, Any] | None = None
+    ) -> Any:
         """处理导入值
 
         Args:
             value: 原始值
             metadata: 字段元数据
+            row_data: 行数据（用于外键创建）
 
         Returns:
             处理后的值
@@ -284,7 +288,7 @@ class FieldProcessor:
             elif metadata.field_type == FieldType.ENUM:
                 return cls._process_enum(value, metadata)
             elif metadata.field_type == FieldType.FOREIGN_KEY:
-                return await cls._process_foreign_key(value, metadata)
+                return await cls._process_foreign_key(value, metadata, row_data)
             else:
                 return str(value).strip() if value else metadata.default_value
 
@@ -340,8 +344,10 @@ class FieldProcessor:
         raise ValueError(f"无效的枚举值: {str_value}")
 
     @classmethod
-    async def _process_foreign_key(cls, value: Any, metadata: FieldMetadata) -> Model | None:
-        """处理外键类型"""
+    async def _process_foreign_key(
+        cls, value: Any, metadata: FieldMetadata, row_data: dict[str, Any] | None = None
+    ) -> Model | None:
+        """处理外键类型，如果不存在则自动创建"""
         if not metadata.foreign_model:
             raise ValueError("外键模型未配置")
 
@@ -350,13 +356,95 @@ class FieldProcessor:
         fk_obj = await metadata.foreign_model.filter(name=fk_name).first()
 
         if not fk_obj:
-            if metadata.required:
-                raise ValueError(f"外键 '{metadata.display_name}' 的值 '{fk_name}' 不存在")
-            else:
-                logger.warning(f"外键 '{metadata.display_name}' 的值 '{fk_name}' 不存在，跳过")
-                return None
+            # 尝试自动创建外键对象
+            try:
+                fk_obj = await cls._create_foreign_key_object(metadata.foreign_model, fk_name, row_data)
+                logger.info(f"自动创建外键对象: {metadata.display_name} - {fk_name}")
+            except Exception as e:
+                if metadata.required:
+                    raise ValueError(
+                        f"外键 '{metadata.display_name}' 的值 '{fk_name}' 不存在且创建失败: {str(e)}"
+                    ) from e
+                else:
+                    logger.warning(f"外键 '{metadata.display_name}' 的值 '{fk_name}' 不存在且创建失败，跳过: {str(e)}")
+                    return None
 
         return fk_obj
+
+    @classmethod
+    async def _create_foreign_key_object(
+        cls, foreign_model: type[Model], name: str, row_data: dict[str, Any] | None = None
+    ) -> Model:
+        """自动创建外键对象
+
+        Args:
+            foreign_model: 外键模型类
+            name: 对象名称
+            row_data: 当前行数据，用于提取关联字段
+
+        Returns:
+            创建的外键对象
+
+        Raises:
+            ValueError: 当缺少必要字段时
+        """
+        from app.models.network_models import Brand, DeviceGroup, DeviceModel, Region
+
+        create_data: dict[str, Any] = {"name": name}
+
+        # 根据模型类型设置必要字段的默认值
+        if foreign_model == Region:
+            # 区域需要 snmp_community_string 和 default_cli_username
+            create_data["snmp_community_string"] = (
+                row_data.get("区域SNMP社区字符串", "public") if row_data else "public"
+            )
+            create_data["default_cli_username"] = row_data.get("区域默认CLI用户名", "admin") if row_data else "admin"
+            create_data["description"] = f"自动创建的区域: {name}"
+
+        elif foreign_model == Brand:
+            # 品牌需要 platform_type
+            platform_type = row_data.get("品牌平台类型", "cisco_iosxe") if row_data else "cisco_iosxe"
+
+            # 检查platform_type是否已存在
+            existing_brand = await Brand.filter(platform_type=platform_type).first()
+            if existing_brand:
+                logger.info(f"品牌 {name} 的平台类型 {platform_type} 已存在于品牌 {existing_brand.name}，复用该品牌")
+                return existing_brand
+
+            create_data["platform_type"] = platform_type
+            create_data["description"] = f"自动创建的品牌: {name}"
+
+        elif foreign_model == DeviceModel:
+            # 设备型号需要关联品牌
+            brand_name = row_data.get("型号所属品牌", "Unknown") if row_data else "Unknown"
+
+            # 查找或创建品牌
+            brand = await Brand.filter(name=brand_name).first()
+            if not brand:
+                platform_type = row_data.get("型号品牌平台类型", "cisco_iosxe") if row_data else "cisco_iosxe"
+
+                # 检查platform_type是否已存在
+                existing_brand = await Brand.filter(platform_type=platform_type).first()
+                if existing_brand:
+                    logger.info(f"平台类型 {platform_type} 已存在于品牌 {existing_brand.name}，使用该品牌创建型号")
+                    brand = existing_brand
+                else:
+                    brand = await Brand.create(
+                        name=brand_name,
+                        platform_type=platform_type,
+                        description=f"自动创建的品牌: {brand_name}",
+                    )
+                    logger.info(f"自动创建品牌: {brand_name}")
+
+            create_data["brand"] = brand
+            create_data["description"] = f"自动创建的设备型号: {name}"
+
+        elif foreign_model == DeviceGroup:
+            # 设备分组只需要名称
+            create_data["description"] = f"自动创建的设备分组: {name}"
+
+        # 创建对象
+        return await foreign_model.create(**create_data)
 
     @classmethod
     async def process_export_value(cls, obj: Model, metadata: FieldMetadata) -> str:
@@ -410,15 +498,25 @@ class UniversalImportExport[T: Model]:
         logger.info(f"已初始化 {self.model_class.__name__} 的导入导出工具")
 
     async def export_template(self) -> bytes:
-        """导出Excel模板"""
+        """导出Excel模板，包含外键关联字段"""
         await self.initialize()
 
         try:
+            import io
+
+            import polars as pl
+
             # 获取导出字段
             export_fields = [meta for meta in self._field_metadata.values() if not meta.import_only]
 
-            # 创建空的数据框，使用英文字段名
-            columns = {meta.name: [] for meta in export_fields}
+            # 获取扩展字段（用于外键创建的辅助字段）
+            extended_fields = self._get_extended_template_fields()
+
+            # 合并所有字段
+            all_fields = export_fields + extended_fields
+
+            # 创建空的数据框，使用中文字段名
+            columns = {meta.display_name: [] for meta in all_fields}
             df = pl.DataFrame(columns)
 
             # 转换为Excel
@@ -426,12 +524,75 @@ class UniversalImportExport[T: Model]:
             df.write_excel(excel_buffer, worksheet=f"{self.model_class.__name__}模板")
             excel_buffer.seek(0)
 
-            logger.info(f"成功生成 {self.model_class.__name__} 模板")
+            logger.info(f"成功生成 {self.model_class.__name__} 模板，包含 {len(all_fields)} 个字段")
             return excel_buffer.getvalue()
 
         except Exception as e:
             logger.error(f"生成模板失败: {e}")
             raise BusinessError(f"生成模板失败: {str(e)}") from e
+
+    def _get_extended_template_fields(self) -> list[FieldMetadata]:
+        """获取扩展模板字段（用于外键创建的辅助字段）"""
+        extended_fields = []
+
+        # 检查是否有需要扩展字段的外键
+        for meta in self._field_metadata.values():
+            if meta.field_type == FieldType.FOREIGN_KEY and not meta.import_only:
+                fk_model_name = meta.foreign_model.__name__ if meta.foreign_model else ""
+
+                # 根据外键模型添加相应的扩展字段
+                if fk_model_name == "Region":
+                    extended_fields.extend(
+                        [
+                            FieldMetadata(
+                                name="region_snmp_community",
+                                display_name="区域SNMP社区字符串",
+                                field_type=FieldType.STRING,
+                                required=True,  # 设为必填
+                                description="区域的SNMP社区字符串（必填）",
+                                import_only=True,
+                            ),
+                            FieldMetadata(
+                                name="region_default_username",
+                                display_name="区域默认CLI用户名",
+                                field_type=FieldType.STRING,
+                                required=True,  # 设为必填
+                                description="区域的默认CLI用户名（必填）",
+                                import_only=True,
+                            ),
+                        ]
+                    )
+                elif fk_model_name == "Brand":
+                    extended_fields.append(
+                        FieldMetadata(
+                            name="brand_platform_type",
+                            display_name="品牌平台类型",
+                            field_type=FieldType.STRING,
+                            description="如果品牌不存在时用于创建品牌（可选，默认: cisco_iosxe）",
+                            import_only=True,
+                        )
+                    )
+                elif fk_model_name == "DeviceModel":
+                    extended_fields.extend(
+                        [
+                            FieldMetadata(
+                                name="model_brand",
+                                display_name="型号所属品牌",
+                                field_type=FieldType.STRING,
+                                description="如果设备型号不存在时用于创建型号的品牌名称",
+                                import_only=True,
+                            ),
+                            FieldMetadata(
+                                name="model_brand_platform",
+                                display_name="型号品牌平台类型",
+                                field_type=FieldType.STRING,
+                                description="如果品牌不存在时用于创建品牌（可选，默认: cisco_iosxe）",
+                                import_only=True,
+                            ),
+                        ]
+                    )
+
+        return extended_fields
 
     async def export_data(self, filters: dict[str, Any] | None = None) -> bytes:
         """导出数据到Excel"""
@@ -499,10 +660,16 @@ class UniversalImportExport[T: Model]:
             file_content = await file.read()
             df = pl.read_excel(io.BytesIO(file_content))
 
-            # 验证必要列
+            # 验证必要列 - 包括扩展字段中的必填字段
             required_fields = [meta for meta in self._field_metadata.values() if meta.required and not meta.export_only]
+
+            # 添加扩展字段中的必填字段
+            extended_fields = self._get_extended_template_fields()
+            required_extended_fields = [meta for meta in extended_fields if meta.required]
+            all_required_fields = required_fields + required_extended_fields
+
             missing_columns = []
-            for meta in required_fields:
+            for meta in all_required_fields:
                 if meta.display_name not in df.columns:
                     missing_columns.append(meta.display_name)
 
@@ -513,7 +680,9 @@ class UniversalImportExport[T: Model]:
             total_rows = len(df)
             success_count = 0
             error_count = 0
+            duplicate_count = 0
             errors = []
+            duplicate_errors = []
 
             # 批量处理数据
             for batch_start in range(0, total_rows, batch_size):
@@ -525,14 +694,23 @@ class UniversalImportExport[T: Model]:
                 error_count += batch_result["errors_count"]
                 errors.extend(batch_result["errors"])
 
+                # 处理重复错误统计
+                if "duplicate_errors" in batch_result:
+                    duplicate_count += len(batch_result["duplicate_errors"])
+                    duplicate_errors.extend(batch_result["duplicate_errors"])
+
             result = {
                 "total_rows": total_rows,
                 "success_count": success_count,
                 "error_count": error_count,
-                "errors": errors[:50],  # 最多返回50个错误
+                "duplicate_count": duplicate_count,
+                "errors": errors[:30],  # 最多返回30个处理错误
+                "duplicate_errors": duplicate_errors[:20],  # 最多返回20个重复错误
             }
 
-            logger.info(f"导入完成: 总计 {total_rows} 行，成功 {success_count} 行，失败 {error_count} 行")
+            logger.info(
+                f"导入完成: 总计 {total_rows} 行，成功 {success_count} 行，失败 {error_count} 行，重复跳过 {duplicate_count} 行"
+            )
             return result
 
         except ValidationError:
@@ -545,11 +723,26 @@ class UniversalImportExport[T: Model]:
         """处理数据批次"""
         success_count = 0
         errors = []
+        duplicate_errors = []  # 记录唯一键冲突错误
 
         for row_idx, row in enumerate(batch_df.iter_rows(named=True)):
+            row_number = start_idx + row_idx + 2  # Excel行号（从第2行开始）
+
             try:
                 # 构建创建数据
                 create_data = {}
+                extra_info = {}  # 用于存储额外字段
+
+                # 获取所有已知字段名（包括扩展字段）
+                known_fields = set()
+                for meta in self._field_metadata.values():
+                    if not meta.export_only:
+                        known_fields.add(meta.display_name)
+
+                # 添加扩展字段
+                extended_fields = self._get_extended_template_fields()
+                for meta in extended_fields:
+                    known_fields.add(meta.display_name)
 
                 # 处理所有字段
                 for meta in self._field_metadata.values():
@@ -558,23 +751,106 @@ class UniversalImportExport[T: Model]:
 
                     # 只处理存在于Excel列中的字段
                     if meta.display_name in row:
-                        value = await FieldProcessor.process_import_value(row[meta.display_name], meta)
+                        value = await FieldProcessor.process_import_value(row[meta.display_name], meta, row)
                         if value is not None:
                             create_data[meta.name] = value
+
+                # 处理扩展字段（用于外键创建，不直接保存到模型）
+                for meta in extended_fields:
+                    if meta.display_name in row:
+                        value = row[meta.display_name]
+                        # 检查必填扩展字段
+                        if meta.required and (value is None or (isinstance(value, str) and not value.strip())):
+                            raise ValueError(f"必填字段 '{meta.display_name}' 不能为空")
+                        # 扩展字段不保存到create_data，只用于外键创建逻辑
+                        pass
+
+                # 处理额外字段（模板外的字段写入extra_info）
+                for column_name, value in row.items():
+                    if column_name not in known_fields and value is not None and str(value).strip():
+                        extra_info[column_name] = str(value).strip()
+
+                # 如果有额外字段，添加到create_data
+                if extra_info:
+                    create_data["extra_info"] = extra_info
+                    logger.info(f"第 {row_number} 行包含额外字段: {list(extra_info.keys())}")
 
                 # 执行自定义验证
                 await self._custom_validate(create_data, row)
 
+                # 检查是否存在唯一键冲突
+                duplicate_check = await self._check_unique_constraints(create_data)
+                if duplicate_check["has_duplicate"]:
+                    error_msg = f"第 {row_number} 行: {duplicate_check['message']}"
+                    duplicate_errors.append(error_msg)
+                    logger.warning(error_msg)
+                    continue
+
                 # 创建记录
                 await self.model_class.create(**create_data)
                 success_count += 1
+                logger.debug(f"成功导入第 {row_number} 行数据")
 
             except Exception as row_error:
-                error_msg = f"第 {start_idx + row_idx + 2} 行: {str(row_error)}"
+                error_msg = f"第 {row_number} 行: {str(row_error)}"
                 errors.append(error_msg)
                 logger.warning(error_msg)
 
-        return {"success": success_count, "errors_count": len(errors), "errors": errors}
+        return {
+            "success": success_count,
+            "errors_count": len(errors),
+            "errors": errors,
+            "duplicate_errors": duplicate_errors,
+        }
+
+    async def _check_unique_constraints(self, create_data: dict[str, Any]) -> dict[str, Any]:
+        """检查唯一键约束
+
+        Args:
+            create_data: 要创建的数据
+
+        Returns:
+            包含是否有重复和重复信息的字典
+        """
+        try:
+            # 获取模型的唯一字段
+            unique_fields = self._get_unique_fields()
+
+            for field_name in unique_fields:
+                if field_name in create_data:
+                    value = create_data[field_name]
+                    # 检查是否已存在相同值的记录
+                    existing = await self.model_class.filter(**{field_name: value}).first()
+                    if existing:
+                        field_display = self._get_field_display_name(field_name)
+                        return {
+                            "has_duplicate": True,
+                            "message": f"唯一字段 '{field_display}' 的值 '{value}' 已存在，跳过导入",
+                        }
+
+            return {"has_duplicate": False, "message": ""}
+
+        except Exception as e:
+            logger.error(f"检查唯一约束时出错: {e}")
+            return {"has_duplicate": False, "message": ""}
+
+    def _get_unique_fields(self) -> list[str]:
+        """获取模型的唯一字段列表"""
+        unique_fields = []
+
+        # 检查字段级别的唯一约束
+        for field_name, field_obj in self.model_class._meta.fields_map.items():
+            if hasattr(field_obj, "unique") and field_obj.unique:
+                unique_fields.append(field_name)
+
+        return unique_fields
+
+    def _get_field_display_name(self, field_name: str) -> str:
+        """获取字段的显示名称"""
+        for meta in self._field_metadata.values():
+            if meta.name == field_name:
+                return meta.display_name
+        return field_name
 
     async def _custom_validate(self, create_data: dict[str, Any], row: dict[str, Any]) -> None:
         """自定义验证 - 子类可重写"""

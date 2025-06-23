@@ -10,6 +10,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints.brands import router as brands_router
 from app.api.v1.endpoints.config_templates import router as config_templates_router
+from app.api.v1.endpoints.device_connection_status import router as connection_status_router
 from app.api.v1.endpoints.device_groups import router as device_groups_router
 from app.api.v1.endpoints.device_models import router as device_models_router
 from app.api.v1.endpoints.devices import router as devices_router
@@ -33,3 +34,6 @@ api_router.include_router(import_export_router)
 # 配置模板系统路由
 api_router.include_router(config_templates_router)
 api_router.include_router(template_commands_router)
+
+# 凭据管理与连接状态路由
+api_router.include_router(connection_status_router)

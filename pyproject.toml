@@ -14,6 +14,7 @@ dependencies = [
     "aerich>=0.9.1",
     "aiohttp>=3.12.13",
     "asyncpg>=0.30.0",
+    "cryptography>=45.0.4",
     "fastapi[standard]>=0.115.12",
     "fastexcel>=0.14.0",
     "loguru>=0.7.3",

@@ -66,7 +66,7 @@ async def init_database_with_sample_data():
         )
 
         # 创建品牌数据
-        h3c_brand = await Brand.create(name="H3C", platform_type="h3c_comware", description="华三网络设备")
+        h3c_brand = await Brand.create(name="H3C", platform_type="hp_comware", description="华三网络设备")
 
         huawei_brand = await Brand.create(name="Huawei", platform_type="huawei_vrp", description="华为网络设备")
 

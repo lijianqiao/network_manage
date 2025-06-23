@@ -120,7 +120,7 @@ region = await Region.create(
 # 创建品牌
 brand = await Brand.create(
     name="H3C",
-    platform_type="h3c_comware"
+    platform_type="hp_comware"
 )
 
 # 创建设备
