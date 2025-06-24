@@ -1,0 +1,11 @@
+Value MAC ([0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4})
+Value VLAN (\d+)
+Value TYPE (\S+)
+Value PORT (\S+)
+Value AGING (\S+)
+
+Start
+  ^${MAC}\s+${VLAN}\s+${TYPE}\s+${PORT}\s+${AGING} -> Record
+  ^Total\s+items\s+displayed\s+=\s+\d+ -> Continue
+  ^\s*$$
+  ^. -> Error

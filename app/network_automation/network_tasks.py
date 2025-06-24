@@ -3,7 +3,7 @@
 @Email: lijianqiao2906@live.com
 @FileName: network_tasks.py
 @DateTime: 2025/06/23 11:45:00
-@Docs: 网络自动化基础任务函数 - 集成Scrapli真实连接
+@Docs: 网络自动化基础任务函数 - 集成Scrapli真实连接 + 混合解析器
 """
 
 from typing import Any
@@ -11,6 +11,7 @@ from typing import Any
 from nornir.core.task import Result, Task
 
 from app.network_automation.connection_manager import connection_manager
+from app.network_automation.parsers.hybrid_parser import hybrid_parser
 from app.utils.logger import logger
 
 
@@ -178,9 +179,6 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
             }  # 如果启用解析且有输出内容
             if enable_parsing and result.get("output"):
                 try:
-                    # 导入TextFSM解析器
-                    from app.network_automation.parsers.textfsm_parser import TextFSMParser
-
                     # 获取设备品牌信息
                     device_brand = host_data.get("brand") or host_data.get("brand_name")
 
@@ -190,14 +188,12 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
                         command_result["parsing_enabled"] = False
                         command_result["parsing_error"] = "设备品牌信息缺失"
                     else:
-                        # 创建TextFSM解析器实例
-                        parser = TextFSMParser()
-
-                        # 执行结构化解析
-                        parse_result = parser.parse_command_output(
+                        # 使用混合解析器执行结构化解析
+                        parse_result = hybrid_parser.parse_command_output(
                             command_output=result["output"],
                             command=command,
-                            brand=device_brand,  # 必需的品牌参数
+                            brand=device_brand,
+                            use_ntc_first=True,  # 优先使用NTC-Templates
                         )
 
                         # 添加解析结果
@@ -205,11 +201,11 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
                         command_result["parsing_enabled"] = True
 
                         logger.info(
-                            f"TextFSM解析完成: {host.hostname} - {command} (解析成功: {parse_result.get('success', False)})"
+                            f"混合解析完成: {host.hostname} - {command} (解析成功: {parse_result.get('success', False)}, 解析器: {parse_result.get('parser', 'unknown')})"
                         )
 
                 except Exception as parse_error:
-                    logger.warning(f"TextFSM结构化解析失败: {parse_error}")
+                    logger.warning(f"结构化解析失败: {parse_error}")
                     command_result["parsing_enabled"] = False
                     command_result["parsing_error"] = str(parse_error)
             else:

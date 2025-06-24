@@ -1,0 +1,10 @@
+Value INTERFACE (\S+)
+Value LINK_STATUS (up|down|admin-down)
+Value PROTOCOL_STATUS (up|down)
+Value DESCRIPTION (.*)
+
+Start
+  ^Interface\s+Link\s+Protocol\s+Description -> Next
+  ^${INTERFACE}\s+${LINK_STATUS}\s+${PROTOCOL_STATUS}\s*${DESCRIPTION} -> Record
+  ^\s*$$
+  ^. -> Error

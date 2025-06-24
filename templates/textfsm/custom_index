@@ -1,0 +1,6 @@
+# H3C自定义模板索引
+# Template, Hostname, Platform, Command
+h3c/h3c_display_mac-address_enhanced.textfsm, .*, h3c, di[[splay]] mac-a[[ddress]]
+h3c/h3c_display_interface_brief_enhanced.textfsm, .*, h3c, di[[splay]] int[[erface]] br[[ief]]
+h3c/h3c_display_vlan_enhanced.textfsm, .*, h3c, di[[splay]] v[[lan]]
+h3c/h3c_display_arp_enhanced.textfsm, .*, h3c, di[[splay]] a[[rp]]

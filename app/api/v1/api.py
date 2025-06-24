@@ -16,6 +16,7 @@ from app.api.v1.endpoints.device_models import router as device_models_router
 from app.api.v1.endpoints.devices import router as devices_router
 from app.api.v1.endpoints.network_automation import router as automation_router
 from app.api.v1.endpoints.operation_logs import router as operation_logs_router
+from app.api.v1.endpoints.parser_management import router as parser_management_router
 from app.api.v1.endpoints.regions import router as regions_router
 from app.api.v1.endpoints.template_commands import router as template_commands_router
 from app.api.v1.endpoints.universal_import_export import router as import_export_router
@@ -41,3 +42,6 @@ api_router.include_router(connection_status_router)
 
 # 网络自动化路由
 api_router.include_router(automation_router)
+
+# 解析器管理路由
+api_router.include_router(parser_management_router)
