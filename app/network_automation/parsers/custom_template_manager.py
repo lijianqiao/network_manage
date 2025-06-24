@@ -145,7 +145,7 @@ class CustomTemplateManager:
                 return result
 
             # 替换所有 [[...]] 模式
-            expanded = re.sub(r"\[\[([^\]]+)\]\]", replace_brackets, pattern)
+            expanded = re.sub(r"\[\[([^]]+)]]", replace_brackets, pattern)
 
             # 处理空格
             expanded = re.sub(r"\s+", r"\\s+", expanded)
