@@ -10,6 +10,7 @@ from typing import Any
 
 from nornir.core.task import Result, Task
 
+from app.core.exceptions import CommandExecutionError, DeviceAuthenticationError, DeviceConnectionError
 from app.network_automation.connection_manager import connection_manager
 from app.network_automation.parsers.hybrid_parser import hybrid_parser
 from app.utils.logger import logger
@@ -27,6 +28,7 @@ def ping_task(task: Task) -> Result:
     try:
         host = task.host
         host_data = getattr(host, "data", {})
+        device_id = host_data.get("device_id")
 
         # 构建主机连接数据
         connection_data = {
@@ -37,13 +39,16 @@ def ping_task(task: Task) -> Result:
             "port": getattr(host, "port", 22),
             "timeout_socket": host_data.get("timeout_socket", 30),
             "timeout_transport": host_data.get("timeout_transport", 60),
+            "device_id": device_id,
         }
 
         # 添加enable密码（如果有）
         if hasattr(host, "enable_password"):
             connection_data["enable_password"] = host.enable_password
 
-        logger.info(f"执行Ping测试: {host.hostname}")
+        logger.info(
+            f"执行Ping测试: {host.hostname}", device_ip=host.hostname, device_id=device_id, operation_type="ping_test"
+        )
 
         # 使用连接管理器测试连通性
         import asyncio
@@ -52,18 +57,47 @@ def ping_task(task: Task) -> Result:
 
         # 添加设备详细信息
         result["details"] = {
-            "device_id": host_data.get("device_id"),
+            "device_id": device_id,
             "device_name": host_data.get("device_name"),
             "platform": host.platform,
         }
 
         if result["status"] == "success":
+            logger.info(
+                f"Ping测试成功: {host.hostname}",
+                device_ip=host.hostname,
+                device_id=device_id,
+                response_time=result.get("response_time"),
+                operation_type="ping_test",
+            )
             return Result(host=task.host, result=result)
         else:
-            return Result(host=task.host, failed=True, exception=Exception(result.get("error", "连通性测试失败")))
+            error_msg = result.get("error", "连通性测试失败")
+            logger.error(
+                f"Ping测试失败: {host.hostname} - {error_msg}",
+                device_ip=host.hostname,
+                device_id=device_id,
+                error=error_msg,
+                operation_type="ping_test",
+            )
+            return Result(
+                host=task.host,
+                failed=True,
+                exception=DeviceConnectionError(
+                    message="连通性测试失败", detail=error_msg, device_id=device_id, device_ip=host.hostname
+                ),
+            )
 
     except Exception as e:
-        logger.error(f"Ping任务失败 {task.host.name}: {e}")
+        device_id = getattr(task.host, "data", {}).get("device_id")
+        logger.error(
+            f"Ping任务异常 {task.host.name}: {e}",
+            device_ip=task.host.hostname,
+            device_id=device_id,
+            error=str(e),
+            error_type=e.__class__.__name__,
+            operation_type="ping_test",
+        )
         return Result(host=task.host, failed=True, exception=e)
 
 
@@ -146,6 +180,7 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
     try:
         host = task.host
         host_data = getattr(host, "data", {})
+        device_id = host_data.get("device_id")
 
         # 构建主机连接数据
         connection_data = {
@@ -156,27 +191,36 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
             "port": getattr(host, "port", 22),
             "timeout_socket": host_data.get("timeout_socket", 30),
             "timeout_transport": host_data.get("timeout_transport", 60),
+            "device_id": device_id,
         }
 
         if hasattr(host, "enable_password"):
             connection_data["enable_password"] = host.enable_password
 
-        logger.info(f"在设备 {host.hostname} 执行命令: {command}")
+        logger.info(
+            f"在设备 {host.hostname} 执行命令: {command}",
+            device_ip=host.hostname,
+            device_id=device_id,
+            command=command,
+            operation_type="command_execution",
+        )
 
         # 使用连接管理器执行命令
         import asyncio
 
-        result = asyncio.run(connection_manager.execute_command(connection_data, command))
+        try:
+            result = asyncio.run(connection_manager.execute_command(connection_data, command))
 
-        if result["status"] == "success":
             # 基础结果
             command_result = {
                 "hostname": host.hostname,
                 "command": command,
                 "raw_output": result.get("output", ""),
-                "execution_time": result.get("execution_time", 0),
+                "execution_time": result.get("elapsed_time", 0),
                 "status": "success",
-            }  # 如果启用解析且有输出内容
+            }
+
+            # 如果启用解析且有输出内容
             if enable_parsing and result.get("output"):
                 try:
                     # 获取设备品牌信息
@@ -184,7 +228,12 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
 
                     if not device_brand:
                         # 如果没有品牌信息，记录警告并跳过解析
-                        logger.warning(f"设备 {host.hostname} 缺少品牌信息，跳过结构化解析")
+                        logger.warning(
+                            f"设备 {host.hostname} 缺少品牌信息，跳过结构化解析",
+                            device_ip=host.hostname,
+                            device_id=device_id,
+                            command=command,
+                        )
                         command_result["parsing_enabled"] = False
                         command_result["parsing_error"] = "设备品牌信息缺失"
                     else:
@@ -201,24 +250,63 @@ def execute_command_task(task: Task, command: str, enable_parsing: bool = True) 
                         command_result["parsing_enabled"] = True
 
                         logger.info(
-                            f"混合解析完成: {host.hostname} - {command} (解析成功: {parse_result.get('success', False)}, 解析器: {parse_result.get('parser', 'unknown')})"
+                            f"混合解析完成: {host.hostname} - {command} (解析成功: {parse_result.get('success', False)}, 解析器: {parse_result.get('parser', 'unknown')})",
+                            device_ip=host.hostname,
+                            device_id=device_id,
+                            command=command,
+                            parsing_success=parse_result.get("success", False),
+                            parser_used=parse_result.get("parser", "unknown"),
                         )
 
                 except Exception as parse_error:
-                    logger.warning(f"结构化解析失败: {parse_error}")
+                    logger.warning(
+                        f"结构化解析失败: {parse_error}",
+                        device_ip=host.hostname,
+                        device_id=device_id,
+                        command=command,
+                        error=str(parse_error),
+                    )
                     command_result["parsing_enabled"] = False
                     command_result["parsing_error"] = str(parse_error)
             else:
                 command_result["parsing_enabled"] = False
 
-            return Result(host=task.host, result=command_result)
-        else:
-            return Result(
-                host=task.host, failed=True, exception=Exception(result.get("error", f"命令执行失败: {command}"))
+            logger.info(
+                f"命令执行成功: {host.hostname} - {command}",
+                device_ip=host.hostname,
+                device_id=device_id,
+                command=command,
+                execution_time=command_result["execution_time"],
+                output_length=len(command_result["raw_output"]),
+                operation_type="command_execution",
             )
 
+            return Result(host=task.host, result=command_result)
+
+        except (DeviceConnectionError, DeviceAuthenticationError, CommandExecutionError) as e:
+            # 网络设备相关异常，直接重新抛出
+            logger.error(
+                f"命令执行失败: {host.hostname} - {command} - {e.message}",
+                device_ip=host.hostname,
+                device_id=device_id,
+                command=command,
+                error=e.message,
+                error_type=e.__class__.__name__,
+                operation_type="command_execution",
+            )
+            return Result(host=task.host, failed=True, exception=e)
+
     except Exception as e:
-        logger.error(f"命令执行失败 {task.host.name}: {e}")
+        device_id = getattr(task.host, "data", {}).get("device_id")
+        logger.error(
+            f"命令执行任务异常 {task.host.name}: {e}",
+            device_ip=task.host.hostname,
+            device_id=device_id,
+            command=command if "command" in locals() else "unknown",
+            error=str(e),
+            error_type=e.__class__.__name__,
+            operation_type="command_execution",
+        )
         return Result(host=task.host, failed=True, exception=e)
 
 

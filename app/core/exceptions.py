@@ -111,6 +111,240 @@ class BusinessError(APIException):
         )
 
 
+# 网络自动化相关异常类
+class NetworkDeviceException(APIException):
+    """网络设备异常基类"""
+
+    def __init__(
+        self,
+        message: str = "网络设备操作失败",
+        detail: str | dict[str, Any] | None = None,
+        device_id: str | None = None,
+        device_ip: str | None = None,
+    ):
+        self.device_id = device_id
+        self.device_ip = device_ip
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=message,
+            detail=detail,
+        )
+
+
+class DeviceConnectionError(NetworkDeviceException):
+    """设备连接异常"""
+
+    def __init__(
+        self,
+        message: str = "设备连接失败",
+        detail: str | dict[str, Any] | None = None,
+        device_id: str | None = None,
+        device_ip: str | None = None,
+        timeout: int | None = None,
+    ):
+        self.timeout = timeout
+        super().__init__(
+            message=message,
+            detail=detail,
+            device_id=device_id,
+            device_ip=device_ip,
+        )
+
+
+class DeviceAuthenticationError(NetworkDeviceException):
+    """设备认证异常"""
+
+    def __init__(
+        self,
+        message: str = "设备认证失败",
+        detail: str | dict[str, Any] | None = None,
+        device_id: str | None = None,
+        device_ip: str | None = None,
+        username: str | None = None,
+    ):
+        self.username = username
+        super().__init__(
+            message=message,
+            detail=detail,
+            device_id=device_id,
+            device_ip=device_ip,
+        )
+
+
+class CommandExecutionError(NetworkDeviceException):
+    """命令执行异常"""
+
+    def __init__(
+        self,
+        message: str = "命令执行失败",
+        detail: str | dict[str, Any] | None = None,
+        device_id: str | None = None,
+        device_ip: str | None = None,
+        command: str | None = None,
+        error_output: str | None = None,
+    ):
+        self.command = command
+        self.error_output = error_output
+        super().__init__(
+            message=message,
+            detail=detail,
+            device_id=device_id,
+            device_ip=device_ip,
+        )
+
+
+class ConfigTemplateError(APIException):
+    """配置模板异常"""
+
+    def __init__(
+        self,
+        message: str = "配置模板错误",
+        detail: str | dict[str, Any] | None = None,
+        template_id: str | None = None,
+        template_name: str | None = None,
+    ):
+        self.template_id = template_id
+        self.template_name = template_name
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message=message,
+            detail=detail,
+        )
+
+
+class ConfigTemplateNotFoundError(ConfigTemplateError):
+    """配置模板未找到异常"""
+
+    def __init__(
+        self,
+        message: str = "配置模板未找到",
+        detail: str | dict[str, Any] | None = None,
+        template_id: str | None = None,
+        template_name: str | None = None,
+    ):
+        super().__init__(
+            message=message,
+            detail=detail,
+            template_id=template_id,
+            template_name=template_name,
+        )
+
+
+class ConfigTemplateRenderError(ConfigTemplateError):
+    """配置模板渲染异常"""
+
+    def __init__(
+        self,
+        message: str = "配置模板渲染失败",
+        detail: str | dict[str, Any] | None = None,
+        template_id: str | None = None,
+        template_name: str | None = None,
+        render_variables: dict[str, Any] | None = None,
+    ):
+        self.render_variables = render_variables
+        super().__init__(
+            message=message,
+            detail=detail,
+            template_id=template_id,
+            template_name=template_name,
+        )
+
+
+class ConfigDeploymentError(NetworkDeviceException):
+    """配置部署异常"""
+
+    def __init__(
+        self,
+        message: str = "配置部署失败",
+        detail: str | dict[str, Any] | None = None,
+        device_id: str | None = None,
+        device_ip: str | None = None,
+        config_content: str | None = None,
+    ):
+        self.config_content = config_content
+        super().__init__(
+            message=message,
+            detail=detail,
+            device_id=device_id,
+            device_ip=device_ip,
+        )
+
+
+class ConfigBackupError(NetworkDeviceException):
+    """配置备份异常"""
+
+    def __init__(
+        self,
+        message: str = "配置备份失败",
+        detail: str | dict[str, Any] | None = None,
+        device_id: str | None = None,
+        device_ip: str | None = None,
+        backup_type: str | None = None,
+    ):
+        self.backup_type = backup_type
+        super().__init__(
+            message=message,
+            detail=detail,
+            device_id=device_id,
+            device_ip=device_ip,
+        )
+
+
+class TextFSMParsingError(APIException):
+    """TextFSM解析异常"""
+
+    def __init__(
+        self,
+        message: str = "命令输出解析失败",
+        detail: str | dict[str, Any] | None = None,
+        command: str | None = None,
+        brand: str | None = None,
+        template_name: str | None = None,
+    ):
+        self.command = command
+        self.brand = brand
+        self.template_name = template_name
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=message,
+            detail=detail,
+        )
+
+
+class CredentialManagerError(APIException):
+    """凭据管理异常"""
+
+    def __init__(
+        self,
+        message: str = "凭据管理操作失败",
+        detail: str | dict[str, Any] | None = None,
+        operation: str | None = None,
+    ):
+        self.operation = operation
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=message,
+            detail=detail,
+        )
+
+
+class InventoryManagerError(APIException):
+    """清单管理异常"""
+
+    def __init__(
+        self,
+        message: str = "设备清单管理失败",
+        detail: str | dict[str, Any] | None = None,
+        operation: str | None = None,
+    ):
+        self.operation = operation
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=message,
+            detail=detail,
+        )
+
+
 class ValidationError(APIException):
     """数据验证错误异常"""
 
@@ -169,6 +403,138 @@ class ConflictException(APIException):
             message=message,
             detail=detail,
         )
+
+
+async def network_device_exception_handler(request: Request, exc: NetworkDeviceException) -> Response:
+    """网络设备异常处理器
+
+    Args:
+        request (Request): 请求对象
+        exc (NetworkDeviceException): 网络设备异常
+
+    Returns:
+        Response: HTTP响应
+    """
+    # 构建详细的错误信息用于日志记录
+    error_context = {
+        "exception_type": exc.__class__.__name__,
+        "message": exc.message,
+        "device_id": getattr(exc, 'device_id', None),
+        "device_ip": getattr(exc, 'device_ip', None),
+        "command": getattr(exc, 'command', None),
+        "username": getattr(exc, 'username', None),
+        "timeout": getattr(exc, 'timeout', None),
+        "operation": getattr(exc, 'operation', None),
+    }
+    
+    # 过滤掉None值
+    error_context = {k: v for k, v in error_context.items() if v is not None}
+    
+    logger.error(
+        f"网络设备操作异常: {exc.message}",
+        **error_context
+    )
+    
+    # 构建响应内容
+    response_content = {
+        "code": exc.status_code,
+        "message": exc.message,
+        "detail": exc.detail,
+        "error_type": "network_device_error",
+    }
+    
+    # 在开发环境下添加更多调试信息
+    if settings.DEBUG:
+        response_content["debug_info"] = error_context
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=response_content,
+    )
+
+
+async def config_template_exception_handler(request: Request, exc: ConfigTemplateError) -> Response:
+    """配置模板异常处理器
+
+    Args:
+        request (Request): 请求对象
+        exc (ConfigTemplateError): 配置模板异常
+
+    Returns:
+        Response: HTTP响应
+    """
+    error_context = {
+        "exception_type": exc.__class__.__name__,
+        "message": exc.message,
+        "template_id": getattr(exc, 'template_id', None),
+        "template_name": getattr(exc, 'template_name', None),
+        "render_variables": getattr(exc, 'render_variables', None),
+    }
+    
+    # 过滤掉None值
+    error_context = {k: v for k, v in error_context.items() if v is not None}
+    
+    logger.error(
+        f"配置模板操作异常: {exc.message}",
+        **error_context
+    )
+    
+    response_content = {
+        "code": exc.status_code,
+        "message": exc.message,
+        "detail": exc.detail,
+        "error_type": "config_template_error",
+    }
+    
+    if settings.DEBUG:
+        response_content["debug_info"] = error_context
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=response_content,
+    )
+
+
+async def textfsm_parsing_exception_handler(request: Request, exc: TextFSMParsingError) -> Response:
+    """TextFSM解析异常处理器
+
+    Args:
+        request (Request): 请求对象
+        exc (TextFSMParsingError): TextFSM解析异常
+
+    Returns:
+        Response: HTTP响应
+    """
+    error_context = {
+        "exception_type": exc.__class__.__name__,
+        "message": exc.message,
+        "command": getattr(exc, 'command', None),
+        "brand": getattr(exc, 'brand', None),
+        "template_name": getattr(exc, 'template_name', None),
+    }
+    
+    # 过滤掉None值
+    error_context = {k: v for k, v in error_context.items() if v is not None}
+    
+    logger.error(
+        f"TextFSM解析异常: {exc.message}",
+        **error_context
+    )
+    
+    response_content = {
+        "code": exc.status_code,
+        "message": exc.message,
+        "detail": exc.detail,
+        "error_type": "textfsm_parsing_error",
+    }
+    
+    if settings.DEBUG:
+        response_content["debug_info"] = error_context
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=response_content,
+    )
 
 
 async def api_exception_handler(request: Request, exc: APIException) -> Response:
@@ -299,6 +665,12 @@ def setup_exception_handlers(app: FastAPI) -> None:
     Args:
         app (FastAPI): FastAPI应用实例
     """
+    # 网络自动化相关异常处理器（需要在APIException之前注册）
+    app.add_exception_handler(NetworkDeviceException, network_device_exception_handler)  # type: ignore
+    app.add_exception_handler(ConfigTemplateError, config_template_exception_handler)  # type: ignore
+    app.add_exception_handler(TextFSMParsingError, textfsm_parsing_exception_handler)  # type: ignore
+    
+    # 通用异常处理器
     app.add_exception_handler(APIException, api_exception_handler)  # type: ignore
     app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
     app.add_exception_handler(PydanticValidationError, validation_exception_handler)  # type: ignore

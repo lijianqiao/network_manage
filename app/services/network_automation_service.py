@@ -22,6 +22,7 @@ from app.network_automation.network_tasks import (
     template_render_task,
 )
 from app.network_automation.task_executor import NetworkTaskExecutor
+from app.network_automation.high_performance_connection_manager import high_performance_connection_manager
 from app.schemas.network_automation import TaskRequest
 from app.utils.logger import logger
 
@@ -237,12 +238,22 @@ class NetworkAutomationService:
         self.validate_task_request(request)
         return await self.execute_task_by_request(request=request, task_func=health_check_task, task_kwargs={})
 
-    def get_connection_stats(self) -> dict[str, Any]:
+    async def get_connection_stats(self) -> dict[str, Any]:
         """获取连接池统计信息
 
         Returns:
             连接池统计
         """
-        from app.network_automation.connection_manager import connection_manager
-
-        return connection_manager.get_connection_stats()
+        try:
+            # 启动高性能连接管理器（如果还未启动）
+            if not high_performance_connection_manager._started:
+                await high_performance_connection_manager.start()
+            
+            # 获取详细的连接池统计
+            return high_performance_connection_manager.get_connection_stats()
+            
+        except Exception as e:
+            logger.error(f"获取连接统计失败: {e}")
+            # 回退到基础连接管理器
+            from app.network_automation.connection_manager import connection_manager
+            return connection_manager.get_connection_stats()

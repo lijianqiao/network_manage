@@ -15,8 +15,10 @@ from app.api.v1.endpoints.device_groups import router as device_groups_router
 from app.api.v1.endpoints.device_models import router as device_models_router
 from app.api.v1.endpoints.devices import router as devices_router
 from app.api.v1.endpoints.network_automation import router as automation_router
+from app.api.v1.endpoints.advanced_network_operations import router as advanced_operations_router
 from app.api.v1.endpoints.operation_logs import router as operation_logs_router
 from app.api.v1.endpoints.parser_management import router as parser_management_router
+from app.api.v1.endpoints.performance_management import router as performance_router
 from app.api.v1.endpoints.regions import router as regions_router
 from app.api.v1.endpoints.template_commands import router as template_commands_router
 from app.api.v1.endpoints.universal_import_export import router as import_export_router
@@ -45,3 +47,9 @@ api_router.include_router(automation_router)
 
 # 解析器管理路由
 api_router.include_router(parser_management_router)
+
+# 性能管理路由
+api_router.include_router(performance_router)
+
+# 高级网络操作路由
+api_router.include_router(advanced_operations_router)

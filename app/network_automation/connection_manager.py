@@ -13,7 +13,14 @@ from typing import Any
 from scrapli import AsyncScrapli
 from scrapli.exceptions import ScrapliException
 
+from app.core.exceptions import CommandExecutionError, DeviceAuthenticationError, DeviceConnectionError
 from app.utils.logger import logger
+from app.utils.network_logger import (
+    log_device_connection,
+    log_device_connection_failed,
+    log_device_connection_success,
+    log_network_operation,
+)
 
 
 class ScrapliConnectionManager:
@@ -33,6 +40,7 @@ class ScrapliConnectionManager:
         self.connection_semaphore = asyncio.Semaphore(max_connections)
         self._active_connections: dict[str, AsyncScrapli] = {}
 
+    @log_network_operation("connection_creation", include_args=False)
     async def create_connection(self, host_data: dict[str, Any]) -> AsyncScrapli:
         """创建Scrapli连接
 
@@ -43,13 +51,17 @@ class ScrapliConnectionManager:
             配置好的Scrapli连接对象
 
         Raises:
-            ScrapliException: 连接创建失败
+            DeviceConnectionError: 连接创建失败
         """
+        device_ip = host_data.get("hostname")
+        device_id = host_data.get("device_id")
+        username = host_data.get("username")
+
         try:
             # 构建Scrapli连接参数
             connection_params = {
-                "host": host_data["hostname"],
-                "auth_username": host_data["username"],
+                "host": device_ip,
+                "auth_username": username,
                 "auth_password": host_data["password"],
                 "auth_strict_key": False,
                 "ssh_config_file": False,
@@ -57,7 +69,9 @@ class ScrapliConnectionManager:
                 "timeout_transport": host_data.get("timeout_transport", 60),
                 "port": host_data.get("port", 22),
                 "transport": "asyncssh",  # 明确使用asyncssh transport，支持Windows
-            }  # 根据平台选择驱动
+            }
+
+            # 根据平台选择驱动
             platform = host_data.get("platform", "").lower()
             if platform in ["cisco_ios", "ios", "cisco"]:
                 connection_params["platform"] = "cisco_iosxe"
@@ -77,7 +91,13 @@ class ScrapliConnectionManager:
             if host_data.get("enable_password"):
                 connection_params["auth_secondary"] = host_data["enable_password"]
 
-            logger.debug(f"创建Scrapli连接: {host_data['hostname']} ({platform}) 使用asyncssh transport")
+            logger.debug(
+                f"创建Scrapli连接: {device_ip} ({platform}) 使用asyncssh transport",
+                device_ip=device_ip,
+                device_id=device_id,
+                platform=platform,
+                port=connection_params["port"],
+            )
 
             # 创建连接对象
             conn = AsyncScrapli(**connection_params)
@@ -85,8 +105,17 @@ class ScrapliConnectionManager:
             return conn
 
         except Exception as e:
-            logger.error(f"创建Scrapli连接失败 {host_data.get('hostname', 'unknown')}: {e}")
-            raise ScrapliException(f"连接创建失败: {str(e)}") from e
+            error_msg = f"连接创建失败: {str(e)}"
+            logger.error(
+                f"创建Scrapli连接失败 {device_ip}: {e}",
+                device_ip=device_ip,
+                device_id=device_id,
+                error=str(e),
+                error_type=e.__class__.__name__,
+            )
+            raise DeviceConnectionError(
+                message=error_msg, detail=str(e), device_id=device_id, device_ip=device_ip
+            ) from e
 
     @asynccontextmanager
     async def get_connection(self, host_data: dict[str, Any]):
@@ -98,36 +127,164 @@ class ScrapliConnectionManager:
         Yields:
             已连接的Scrapli对象
         """
+        device_ip = host_data.get("hostname")
+        device_id = host_data.get("device_id")
+        username = host_data.get("username")
+
         async with self.connection_semaphore:
             conn = None
+            start_time = asyncio.get_event_loop().time()
+
             try:
+                # 记录连接开始
+                log_device_connection(
+                    str(device_ip) if device_ip is not None else "",
+                    str(device_id) if device_id is not None else "",
+                    str(username) if username is not None else "",
+                )
+
                 # 创建连接
                 conn = await self.create_connection(host_data)
 
                 # 打开连接
-                logger.debug(f"正在连接到设备: {host_data['hostname']}...")
+                logger.debug(f"正在连接到设备: {device_ip}...", device_ip=device_ip, device_id=device_id)
                 await conn.open()
-                logger.info(f"成功连接到设备: {host_data['hostname']}")
+
+                # 计算连接耗时
+                duration = asyncio.get_event_loop().time() - start_time
+
+                logger.info(
+                    f"成功连接到设备: {device_ip}",
+                    device_ip=device_ip,
+                    device_id=device_id,
+                    duration=f"{duration:.3f}s",
+                )
+
+                # 记录连接成功
+                log_device_connection_success(
+                    str(device_ip) if device_ip is not None else "",
+                    str(device_id) if device_id is not None else "",
+                    duration,
+                )
 
                 yield conn
 
             except TimeoutError as e:
-                logger.error(f"连接超时 {host_data.get('hostname', 'unknown')}: {e}")
-                raise ScrapliException(f"连接超时: {str(e)}") from e
+                duration = asyncio.get_event_loop().time() - start_time
+                error_msg = f"连接超时: {str(e)}"
+
+                logger.error(
+                    f"连接超时 {device_ip}: {e}",
+                    device_ip=device_ip,
+                    device_id=device_id,
+                    error=str(e),
+                    duration=f"{duration:.3f}s",
+                )
+
+                log_device_connection_failed(
+                    str(device_ip) if device_ip is not None else "",
+                    error_msg,
+                    str(device_id) if device_id is not None else "",
+                    duration,
+                )
+
+                raise DeviceConnectionError(
+                    message=error_msg,
+                    detail=str(e),
+                    device_id=device_id,
+                    device_ip=device_ip,
+                    timeout=host_data.get("timeout_socket", 30),
+                ) from e
+
             except ConnectionRefusedError as e:
-                logger.error(f"连接被拒绝 {host_data.get('hostname', 'unknown')}: {e}")
-                raise ScrapliException(f"连接被拒绝: {str(e)}") from e
+                duration = asyncio.get_event_loop().time() - start_time
+                error_msg = f"连接被拒绝: {str(e)}"
+
+                logger.error(
+                    f"连接被拒绝 {device_ip}: {e}",
+                    device_ip=device_ip,
+                    device_id=device_id,
+                    error=str(e),
+                    duration=f"{duration:.3f}s",
+                )
+
+                log_device_connection_failed(
+                    str(device_ip) if device_ip is not None else "",
+                    error_msg,
+                    str(device_id) if device_id is not None else "",
+                    duration,
+                )
+
+                raise DeviceConnectionError(
+                    message=error_msg, detail=str(e), device_id=device_id, device_ip=device_ip
+                ) from e
+
+            except ScrapliException as e:
+                duration = asyncio.get_event_loop().time() - start_time
+                error_msg = str(e)
+
+                logger.error(
+                    f"Scrapli连接失败 {device_ip}: {e}",
+                    device_ip=device_ip,
+                    device_id=device_id,
+                    error=error_msg,
+                    duration=f"{duration:.3f}s",
+                )
+
+                log_device_connection_failed(
+                    str(device_ip) if device_ip is not None else "",
+                    error_msg,
+                    str(device_id) if device_id is not None else "",
+                    duration,
+                )
+
+                # 根据错误类型抛出相应异常
+                if "authentication" in error_msg.lower() or "login" in error_msg.lower():
+                    raise DeviceAuthenticationError(
+                        message="设备认证失败",
+                        detail=error_msg,
+                        device_id=device_id,
+                        device_ip=device_ip,
+                        username=username,
+                    ) from e
+                else:
+                    raise DeviceConnectionError(
+                        message="设备连接失败", detail=error_msg, device_id=device_id, device_ip=device_ip
+                    ) from e
+
             except Exception as e:
-                logger.error(f"连接失败 {host_data.get('hostname', 'unknown')}: {e}")
-                raise ScrapliException(f"连接失败: {str(e)}") from e
+                duration = asyncio.get_event_loop().time() - start_time
+                error_msg = f"连接失败: {str(e)}"
+
+                logger.error(
+                    f"连接失败 {device_ip}: {e}",
+                    device_ip=device_ip,
+                    device_id=device_id,
+                    error=str(e),
+                    error_type=e.__class__.__name__,
+                    duration=f"{duration:.3f}s",
+                )
+
+                log_device_connection_failed(
+                    str(device_ip) if device_ip is not None else "",
+                    error_msg,
+                    str(device_id) if device_id is not None else "",
+                    duration,
+                )
+
+                raise DeviceConnectionError(
+                    message=error_msg, detail=str(e), device_id=device_id, device_ip=device_ip
+                ) from e
             finally:
                 # 确保连接被关闭
                 if conn and conn.isalive():
                     try:
                         await conn.close()
-                        logger.debug(f"已关闭连接: {host_data.get('hostname', 'unknown')}")
+                        logger.debug(f"已关闭连接: {device_ip}", device_ip=device_ip, device_id=device_id)
                     except Exception as e:
-                        logger.warning(f"关闭连接时出错 {host_data.get('hostname', 'unknown')}: {e}")
+                        logger.warning(
+                            f"关闭连接时出错 {device_ip}: {e}", device_ip=device_ip, device_id=device_id, error=str(e)
+                        )
 
     async def test_connectivity(self, host_data: dict[str, Any]) -> dict[str, Any]:
         """测试设备连通性
@@ -180,6 +337,7 @@ class ScrapliConnectionManager:
                 "error_type": type(e).__name__,
             }
 
+    @log_network_operation("command_execution", include_args=False)
     async def execute_command(self, host_data: dict[str, Any], command: str) -> dict[str, Any]:
         """执行单条命令
 
@@ -190,16 +348,28 @@ class ScrapliConnectionManager:
         Returns:
             命令执行结果
         """
+        device_ip = host_data.get("hostname")
+        device_id = host_data.get("device_id")
         start_time = asyncio.get_event_loop().time()
 
         try:
             async with self.get_connection(host_data) as conn:
-                response = await conn.send_command(command)
+                logger.info(f"执行命令: {command}", device_ip=device_ip, device_id=device_id, command=command)
 
+                response = await conn.send_command(command)
                 elapsed_time = asyncio.get_event_loop().time() - start_time
 
+                logger.info(
+                    f"命令执行成功: {command}",
+                    device_ip=device_ip,
+                    device_id=device_id,
+                    command=command,
+                    duration=f"{elapsed_time:.3f}s",
+                    output_length=len(response.result),
+                )
+
                 return {
-                    "hostname": host_data["hostname"],
+                    "hostname": device_ip,
                     "command": command,
                     "status": "success",
                     "output": response.result,
@@ -208,16 +378,31 @@ class ScrapliConnectionManager:
 
         except Exception as e:
             elapsed_time = asyncio.get_event_loop().time() - start_time
-            logger.error(f"命令执行失败 {host_data['hostname']}: {e}")
-            return {
-                "hostname": host_data["hostname"],
-                "command": command,
-                "status": "failed",
-                "output": "",
-                "error": str(e),
-                "elapsed_time": round(elapsed_time, 3),
-                "error_type": type(e).__name__,
-            }
+
+            logger.error(
+                f"命令执行失败: {command}",
+                device_ip=device_ip,
+                device_id=device_id,
+                command=command,
+                error=str(e),
+                error_type=e.__class__.__name__,
+                duration=f"{elapsed_time:.3f}s",
+            )
+
+            # 根据错误类型抛出相应异常
+            if isinstance(e, DeviceConnectionError | DeviceAuthenticationError):
+                # 连接相关异常直接重新抛出
+                raise
+            else:
+                # 其他异常转换为命令执行异常
+                raise CommandExecutionError(
+                    message=f"命令执行失败: {command}",
+                    detail=str(e),
+                    device_id=device_id,
+                    device_ip=device_ip,
+                    command=command,
+                    error_output=str(e),
+                ) from e
 
     async def execute_commands(self, host_data: dict[str, Any], commands: list[str]) -> dict[str, Any]:
         """执行多条命令
