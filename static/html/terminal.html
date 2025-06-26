@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络设备终端 - WebSSH CLI</title>
+
+    <!-- Xterm.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            background: #2d2d30;
+            padding: 8px 15px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 40px;
+        }
+
+        .header h1 {
+            font-size: 14px;
+            color: #cccccc;
+        }
+
+        .connection-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .connection-panel input {
+            background: #3c3c3c;
+            border: 1px solid #555555;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .connection-panel input:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .connection-panel button {
+            background: #0e639c;
+            border: none;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .connection-panel button:hover {
+            background: #1177bb;
+        }
+
+        .connection-panel button:disabled {
+            background: #666666;
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            background: #007acc;
+            color: white;
+            padding: 4px 15px;
+            font-size: 12px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-bar.connected {
+            background: #16825d;
+        }
+
+        .status-bar.disconnected {
+            background: #a1260d;
+        }
+
+        .status-bar.connecting {
+            background: #ca5010;
+        }
+
+        .status-bar.error {
+            background: #a80000;
+        }
+
+        .terminal-container {
+            height: calc(100vh - 64px);
+            background: #000000;
+            position: relative;
+        }
+
+        #terminal {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* 连接对话框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #2d2d30;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+            min-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-title {
+            color: #cccccc;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #cccccc;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            background: #3c3c3c;
+            border: 1px solid #555555;
+            color: #ffffff;
+            padding: 8px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .modal-buttons {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            background: #0e639c;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 13px;
+        }
+
+        .modal-buttons button:hover {
+            background: #1177bb;
+        }
+
+        .modal-buttons button.cancel {
+            background: #666666;
+        }
+
+        .modal-buttons button.cancel:hover {
+            background: #777777;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🌐 网络设备终端</h1>
+        <div class="connection-panel">
+            <input type="text" id="quickHost" placeholder="主机IP地址" style="width: 150px;">
+            <input type="text" id="quickUsername" placeholder="用户名" style="width: 100px;">
+            <input type="password" id="quickPassword" placeholder="密码" style="width: 100px;">
+            <button id="connectBtn" onclick="showConnectionDialog()">连接</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>断开</button>
+            <button onclick="clearTerminal()">清屏</button>
+        </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="status-bar disconnected" id="statusBar">
+        未连接 - 请输入主机信息后点击连接
+    </div>
+
+    <!-- 终端区域 -->
+    <div class="terminal-container">
+        <div id="terminal"></div>
+    </div>
+
+    <!-- 连接配置对话框 -->
+    <div class="modal" id="connectionModal">
+        <div class="modal-content">
+            <div class="modal-title">连接到网络设备</div>
+            <div class="form-group">
+                <label>主机地址 *</label>
+                <input type="text" id="modalHost" placeholder="例如: 192.168.1.1">
+            </div>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="modalUsername" placeholder="默认: admin">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="modalPassword" placeholder="设备登录密码">
+            </div>
+            <div class="form-group">
+                <label>Enable密码</label>
+                <input type="password" id="modalEnablePassword" placeholder="特权模式密码（可选）">
+            </div>
+            <div class="form-group">
+                <label>端口</label>
+                <input type="number" id="modalPort" placeholder="22" value="22">
+            </div>
+            <div class="form-group">
+                <label>设备平台</label>
+                <select id="modalPlatform">
+                    <option value="cisco_ios">Cisco IOS</option>
+                    <option value="cisco_nxos">Cisco NX-OS</option>
+                    <option value="cisco_iosxr">Cisco IOS-XR</option>
+                    <option value="huawei_vrp">华为 VRP</option>
+                    <option value="h3c_comware">H3C Comware</option>
+                    <option value="generic">通用</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel" onclick="hideConnectionDialog()">取消</button>
+                <button onclick="connectToDevice()">连接</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Xterm.js 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+    <script>
+        // 全局变量
+        let term = null;
+        let fitAddon = null;
+        let ws = null;
+        let sessionId = null;
+        let isConnected = false;
+        let currentHost = '';
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentCommand = '';
+
+        // DOM元素
+        const statusBar = document.getElementById('statusBar');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const connectionModal = document.getElementById('connectionModal');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeTerminal();
+
+            // 绑定快速连接回车键
+            document.getElementById('quickHost').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    quickConnect();
+                }
+            });
+
+            // 绑定模态框回车键
+            document.getElementById('modalHost').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    connectToDevice();
+                }
+            });
+        });
+
+        // 初始化终端
+        function initializeTerminal() {
+            // 创建终端实例
+            term = new Terminal({
+                cols: 80,
+                rows: 24,
+                cursorBlink: true,
+                theme: {
+                    background: '#000000',
+                    foreground: '#ffffff',
+                    cursor: '#ffffff',
+                    selection: '#3369ff',
+                    black: '#000000',
+                    red: '#ff0000',
+                    green: '#00ff00',
+                    yellow: '#ffff00',
+                    blue: '#0000ff',
+                    magenta: '#ff00ff',
+                    cyan: '#00ffff',
+                    white: '#ffffff',
+                    brightBlack: '#808080',
+                    brightRed: '#ff8080',
+                    brightGreen: '#80ff80',
+                    brightYellow: '#ffff80',
+                    brightBlue: '#8080ff',
+                    brightMagenta: '#ff80ff',
+                    brightCyan: '#80ffff',
+                    brightWhite: '#ffffff'
+                },
+                fontSize: 14,
+                fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                allowTransparency: false,
+                convertEol: true
+            });
+
+            // 添加自适应插件
+            fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+
+            // 打开终端
+            term.open(document.getElementById('terminal'));
+            fitAddon.fit();
+
+            // 窗口大小改变时自适应
+            window.addEventListener('resize', () => {
+                fitAddon.fit();
+            });
+
+            // 处理用户输入
+            term.onData(handleTerminalInput);
+
+            // 显示欢迎信息
+            term.writeln('\x1b[32m欢迎使用网络设备终端！\x1b[0m');
+            term.writeln('\x1b[36m请点击"连接"按钮连接到网络设备。\x1b[0m');
+            term.writeln('');
+        }
+
+        // 处理终端输入
+        function handleTerminalInput(data) {
+            if (!isConnected) {
+                return;
+            }
+
+            // 处理特殊字符
+            if (data === '\r') { // 回车键
+                if (currentCommand.trim()) {
+                    executeCommand(currentCommand.trim());
+                    commandHistory.unshift(currentCommand.trim());
+                    if (commandHistory.length > 100) {
+                        commandHistory.pop();
+                    }
+                }
+                currentCommand = '';
+                historyIndex = -1;
+            } else if (data === '\x7f') { // 退格键
+                if (currentCommand.length > 0) {
+                    currentCommand = currentCommand.slice(0, -1);
+                    term.write('\b \b');
+                }
+            } else if (data === '\x1b[A') { // 上箭头
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    replaceCurrentCommand(commandHistory[historyIndex]);
+                }
+            } else if (data === '\x1b[B') { // 下箭头
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    replaceCurrentCommand(commandHistory[historyIndex]);
+                } else if (historyIndex === 0) {
+                    historyIndex = -1;
+                    replaceCurrentCommand('');
+                }
+            } else if (data === '\t') { // Tab键 - 可以添加自动补全
+                // 这里可以添加命令自动补全功能
+            } else if (data >= ' ' && data <= '~') { // 可打印字符
+                currentCommand += data;
+                term.write(data);
+            }
+        }
+
+        // 替换当前命令
+        function replaceCurrentCommand(newCommand) {
+            // 清除当前行
+            const clearLength = currentCommand.length;
+            term.write('\b'.repeat(clearLength));
+            term.write(' '.repeat(clearLength));
+            term.write('\b'.repeat(clearLength));
+
+            // 写入新命令
+            currentCommand = newCommand;
+            term.write(newCommand);
+        }
+
+        // 显示连接对话框
+        function showConnectionDialog() {
+            const quickHost = document.getElementById('quickHost').value;
+            const quickUsername = document.getElementById('quickUsername').value;
+            const quickPassword = document.getElementById('quickPassword').value;
+
+            // 填充快速输入的值
+            if (quickHost) document.getElementById('modalHost').value = quickHost;
+            if (quickUsername) document.getElementById('modalUsername').value = quickUsername;
+            if (quickPassword) document.getElementById('modalPassword').value = quickPassword;
+
+            connectionModal.classList.add('show');
+            document.getElementById('modalHost').focus();
+        }
+
+        // 隐藏连接对话框
+        function hideConnectionDialog() {
+            connectionModal.classList.remove('show');
+        }
+
+        // 快速连接
+        function quickConnect() {
+            const host = document.getElementById('quickHost').value.trim();
+            const username = document.getElementById('quickUsername').value.trim();
+            const password = document.getElementById('quickPassword').value;
+
+            if (!host) {
+                updateStatus('请输入主机地址', 'error');
+                return;
+            }
+
+            connectToDevice(host, username, password);
+        }
+
+        // 连接到设备
+        function connectToDevice(host, username, password, enablePassword, port, platform) {
+            // 如果没有参数，从对话框获取
+            if (!host) {
+                host = document.getElementById('modalHost').value.trim();
+                username = document.getElementById('modalUsername').value.trim();
+                password = document.getElementById('modalPassword').value;
+                enablePassword = document.getElementById('modalEnablePassword').value;
+                port = document.getElementById('modalPort').value || 22;
+                platform = document.getElementById('modalPlatform').value;
+            }
+
+            if (!host) {
+                alert('请输入主机地址！');
+                return;
+            }
+
+            // 隐藏对话框
+            hideConnectionDialog();
+
+            currentHost = host;
+            sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+
+            updateStatus('正在连接...', 'connecting');
+            term.writeln('\x1b[33m正在连接到 ' + host + '...\x1b[0m');
+
+            const wsUrl = `ws://localhost:8010/api/ws/cli/${host}?session_id=${sessionId}`;
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function () {
+                    term.writeln('\x1b[32mWebSocket连接已建立\x1b[0m');
+
+                    // 发送连接命令
+                    const connectMessage = {
+                        type: 'connect',
+                        data: {
+                            username: username || undefined,
+                            password: password || undefined,
+                            enable_password: enablePassword || undefined,
+                            port: parseInt(port) || 22,
+                            platform: platform || 'cisco_ios'
+                        }
+                    };
+
+                    ws.send(JSON.stringify(connectMessage));
+                };
+
+                ws.onmessage = function (event) {
+                    const message = JSON.parse(event.data);
+                    handleMessage(message);
+                };
+
+                ws.onclose = function () {
+                    isConnected = false;
+                    updateStatus('连接已断开', 'disconnected');
+                    term.writeln('\x1b[31m连接已断开\x1b[0m');
+                    updateConnectionButtons();
+                };
+
+                ws.onerror = function (error) {
+                    updateStatus('连接错误', 'error');
+                    term.writeln('\x1b[31mWebSocket连接错误: ' + error + '\x1b[0m');
+                };
+
+            } catch (error) {
+                updateStatus('连接失败', 'error');
+                term.writeln('\x1b[31m连接失败: ' + error + '\x1b[0m');
+            }
+        }
+
+        // 处理消息
+        function handleMessage(message) {
+            switch (message.type) {
+                case 'welcome':
+                    term.writeln('\x1b[36m' + message.data.message + '\x1b[0m');
+                    break;
+
+                case 'connect':
+                    isConnected = true;
+                    updateStatus(`已连接到 ${currentHost}`, 'connected');
+                    term.writeln('\x1b[32m设备连接成功！\x1b[0m');
+                    term.writeln('\x1b[36m可以开始输入命令...\x1b[0m');
+                    term.write('\x1b[32m' + currentHost + '# \x1b[0m');
+                    updateConnectionButtons();
+                    break;
+
+                case 'response':
+                    term.writeln('\r');
+                    term.write(message.output);
+                    if (!message.output.endsWith('\n') && !message.output.endsWith('\r\n')) {
+                        term.writeln('');  // 添加换行
+                    }
+                    term.write('\x1b[32m' + currentHost + '# \x1b[0m');
+                    break;
+
+                case 'error':
+                    const errorMsg = message.error + (message.data?.detail ? ': ' + message.data.detail : '');
+                    term.writeln('\x1b[31m' + errorMsg + '\x1b[0m');
+                    if (isConnected) {
+                        term.write('\x1b[32m' + currentHost + '# \x1b[0m');
+                    }
+                    break;
+
+                case 'disconnect':
+                    isConnected = false;
+                    updateStatus('已断开连接', 'disconnected');
+                    term.writeln('\x1b[31m连接已断开: ' + message.reason + '\x1b[0m');
+                    updateConnectionButtons();
+                    break;
+            }
+        }
+
+        // 执行命令
+        function executeCommand(command) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const commandMessage = {
+                    type: 'command',
+                    command: command,
+                    timeout: 30
+                };
+
+                ws.send(JSON.stringify(commandMessage));
+            }
+        }
+
+        // 更新状态栏
+        function updateStatus(message, status) {
+            statusBar.textContent = message;
+            statusBar.className = `status-bar ${status}`;
+        }
+
+        // 更新连接按钮状态
+        function updateConnectionButtons() {
+            connectBtn.disabled = isConnected;
+            disconnectBtn.disabled = !isConnected;
+        }
+
+        // 断开连接
+        function disconnect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const disconnectMessage = {
+                    type: 'disconnect',
+                    reason: '用户主动断开'
+                };
+                ws.send(JSON.stringify(disconnectMessage));
+                ws.close();
+            }
+
+            isConnected = false;
+            updateStatus('已断开连接', 'disconnected');
+            updateConnectionButtons();
+        }
+
+        // 清空终端
+        function clearTerminal() {
+            term.clear();
+            term.writeln('\x1b[32m终端已清空\x1b[0m');
+            if (isConnected) {
+                term.write('\x1b[32m' + currentHost + '# \x1b[0m');
+            }
+        }
+
+        // 处理窗口关闭
+        window.addEventListener('beforeunload', function () {
+            if (ws) {
+                ws.close();
+            }
+        });
+    </script>
+</body>
+
+</html>

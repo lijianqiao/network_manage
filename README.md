@@ -11,14 +11,16 @@
 - **模板系统** - Jinja2配置模板 + TextFSM输出解析
 - **连接池管理** - 异步连接池、并发控制、资源优化
 - **凭据管理** - 动态密码、OTP、Enable密码统一管理
+- **🌐 WebSocket CLI** - 实时CLI交互，支持多设备并发连接
 
 ### 🏗️ 技术架构特性
 - 🚀 **FastAPI** - 现代化异步Web框架，自动生成API文档
 - 🗄️ **Tortoise ORM** - 异步ORM，支持PostgreSQL数据库
 - 🌐 **Scrapli** - 专业网络设备SSH/Telnet连接驱动
 - ⚡ **Nornir** - 网络自动化任务调度框架
+- 🔌 **WebSocket** - 实时CLI交互，支持在线设备管理
 - 📝 **结构化日志** - 基于Loguru的网络操作审计日志
-- � **安全加密** - Fernet密码加密、凭据安全管理
+- 🔐 **安全加密** - Fernet密码加密、凭据安全管理
 - 🔧 **现代工具链** - UV包管理 + Python 3.13
 
 ## 📁 项目结构
@@ -162,8 +164,50 @@ BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:8080
 - **API交互文档**: http://127.0.0.1:8010/api/docs (Swagger UI)
 - **API规范文档**: http://127.0.0.1:8010/api/redoc (ReDoc)
 - **健康检查**: http://127.0.0.1:8010/health
+- **🖥️ 网络终端**: http://127.0.0.1:8010/api/ws/cli/terminal (专业CLI界面)
 
 ## 🎯 主要API端点
+
+### WebSocket CLI实时交互
+
+```bash
+# WebSocket CLI连接端点
+ws://127.0.0.1:8010/api/ws/cli/{host_ip}?session_id={session_id}
+
+# CLI会话管理API
+GET    /api/ws/cli/sessions          # 获取所有CLI会话状态
+DELETE /api/ws/cli/sessions/{id}     # 关闭指定CLI会话
+GET    /api/ws/cli/terminal          # 专业网络终端界面
+GET    /api/ws/cli/demo              # 简单演示页面（重定向）
+```
+
+**WebSocket消息格式：**
+```json
+// 连接设备
+{
+  "type": "connect",
+  "data": {
+    "username": "admin",
+    "password": "password123",
+    "enable_password": "enable123"
+  }
+}
+
+// 执行命令
+{
+  "type": "command",
+  "command": "show version",
+  "timeout": 30
+}
+
+// 响应消息
+{
+  "type": "response",
+  "output": "Cisco IOS Software...",
+  "success": true,
+  "timestamp": "2025-06-26T15:30:00"
+}
+```
 
 ### 网络自动化核心API
 
@@ -194,6 +238,20 @@ POST /api/automation/health-check
 
 # 连接池状态
 GET /api/automation/connection-stats
+```
+
+### WebSocket实时CLI交互
+
+```bash
+# WebSocket CLI连接
+WS /api/ws/cli/{device_id}?session_id={session_id}
+
+# CLI会话管理API
+GET    /api/ws/cli/sessions           # 获取所有CLI会话状态
+DELETE /api/ws/cli/sessions/{id}     # 关闭指定CLI会话
+
+# CLI交互演示页面
+GET /api/ws/cli/demo                 # 访问Web演示界面
 ```
 
 ### 设备管理API
@@ -262,6 +320,80 @@ GET    /api/brands           # 设备品牌管理
 - 标准化请求/响应模型
 - 依赖注入的服务调用
 - 自动API文档生成
+
+## 🌐 WebSocket CLI交互功能
+
+### 🚀 实时CLI交互特性
+
+- **实时连接** - 通过WebSocket实现与网络设备的实时CLI交互
+- **多设备支持** - 同时管理多个设备的CLI会话
+- **会话管理** - 自动会话创建、状态监控、超时清理
+- **安全认证** - 支持用户名/密码/Enable密码多级认证
+- **命令执行** - 实时命令执行和结果反馈
+- **错误处理** - 完善的连接和命令执行异常处理
+- **Web界面** - 内置HTML演示页面，可直接在浏览器中使用
+
+### 🔌 WebSocket API使用
+
+**连接端点：**
+```
+ws://127.0.0.1:8010/api/ws/cli/{host_ip}?session_id={session_id}
+```
+
+**🖥️ 专业终端界面特性：**
+- **类CRT界面** - 专业的黑色终端，绿色字体，真实的CLI体验
+- **实时交互** - 类似SSH客户端的实时命令行交互
+- **快速连接** - 顶部工具栏支持快速输入IP和凭据
+- **命令历史** - 支持上下箭头键浏览命令历史
+- **多平台支持** - 支持Cisco、华为、H3C等多种设备平台
+- **连接管理** - 状态栏显示连接状态，支持连接/断开操作
+- **自动认证** - 智能处理用户名/密码/Enable密码认证
+
+**消息类型：**
+1. **connect** - 连接设备
+2. **command** - 执行命令
+3. **status** - 查询状态
+4. **disconnect** - 断开连接
+5. **ping** - 心跳检测
+
+**Python客户端示例：**
+```python
+# 详见 examples/websocket_cli_example.py
+import asyncio
+import websockets
+import json
+
+async def cli_example():
+    # 注意：现在使用IP地址而不是设备ID
+    uri = "ws://localhost:8010/api/ws/cli/192.168.1.1"
+    async with websockets.connect(uri) as websocket:
+        # 连接设备
+        await websocket.send(json.dumps({
+            "type": "connect",
+            "data": {
+                "username": "admin",
+                "password": "password123",
+                "platform": "cisco_ios"
+            }
+        }))
+        
+        # 执行命令
+        await websocket.send(json.dumps({
+            "type": "command",
+            "command": "show version"
+        }))
+        
+        # 接收响应
+        response = await websocket.recv()
+        print(json.loads(response))
+```
+
+**Web终端使用：**
+1. 访问 http://127.0.0.1:8010/api/ws/cli/terminal
+2. 在顶部输入设备IP地址和认证信息
+3. 点击"连接"按钮建立连接
+4. 直接在终端中输入命令（支持命令历史和快捷键）
+5. 享受类似CRT/SecureCRT的专业CLI体验
 
 ## 🔧 开发指南
 

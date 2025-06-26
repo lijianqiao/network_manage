@@ -27,6 +27,8 @@ examples/
 logs/
 # .vscode/
 # .github/
+node_modules/
+
 tests/
 # .cursor/
 prototype/
