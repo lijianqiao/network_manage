@@ -98,4 +98,4 @@ async def get_connection_stats(
     automation_service: NetworkAutomationService = Depends(get_network_automation_service),
 ) -> dict[str, Any]:
     """获取连接池的统计信息"""
-    return automation_service.get_connection_stats()
+    return await automation_service.get_connection_stats()
